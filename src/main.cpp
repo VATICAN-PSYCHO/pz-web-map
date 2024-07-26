@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "yaml-cpp/yaml.h"
+
 using namespace std;
 
 bool needSanitization(vector<byte> &data, string &sanitizeText) {
@@ -26,20 +28,28 @@ bool needSanitization(vector<byte> &data, string &sanitizeText) {
 
 int main(int argc, char *argv[]) {
 
-	if (argc < 3) {
-		printf("Please provide the game directory and gameMods "
-			   "directory as "
-			   "command line arguments.\n");
+	YAML::Node config = YAML::LoadFile("config.yaml");
+
+	if (!config["game_dir"]) {
+		printf("Game directory not found in config file.\n");
 		return 1;
 	}
 
-	auto gameDirArg = argv[1];
-	auto gameModsDirArg = argv[2];
+	if (!config["mods_dir"]) {
+		printf("Game mods directory not found in config file.\n");
+		return 1;
+	}
 
-	printf("Game Directory: %s\n", gameDirArg);
-	printf("Game Mods Directory: %s\n", gameModsDirArg);
+	string _gameDir = config["game_dir"].as<string>();
+	string _gameModsDir = config["mods_dir"].as<string>();
 
-	auto gameDir = filesystem::path(gameDirArg);
+	filesystem::path gameDir = filesystem::path(_gameDir);
+	filesystem::path gameModsDir = filesystem::path(_gameModsDir);
+
+	if (!filesystem::exists(gameDir)) {
+		printf("Game directory does not exist.\n");
+		return 1;
+	}
 
 	if (!filesystem::exists(gameDir)) {
 		printf("Game directory does not exist.\n");
@@ -63,10 +73,6 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	filesystem::path texturesDir = filesystem::current_path() / "textures";
-
-	filesystem::create_directory(texturesDir);
-
 	filesystem::path texturePacksDir = gameDir / "media" / "texturepacks";
 
 	if (!filesystem::exists(texturePacksDir)) {
@@ -74,107 +80,128 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	filesystem::path texturesDir =
+		filesystem::current_path() / "var" / "textures";
+
+	filesystem::create_directories(texturesDir);
+
+	vector<string> includePacks = config["include_packs"].as<vector<string>>();
+
 	for (const auto &entry : filesystem::directory_iterator(texturePacksDir)) {
 
-		if (!entry.is_directory()) {
+		if (entry.is_directory()) {
+			continue;
+		}
 
-			string filePath = entry.path();
-			string fileName = entry.path().filename();
+		if (includePacks.size() > 0) {
+			bool found = false;
 
-			if (filePath.find(".pack") != string::npos) {
-
-				ifstream textureFile(entry.path(), ios::in);
-
-				if (!textureFile.is_open()) {
-					printf("Failed to open file.\n");
-					return 1;
+			for (size_t i = 0; i < includePacks.size(); ++i) {
+				if (entry.path().filename() == includePacks[i]) {
+					found = true;
+					break;
 				}
+			}
 
-				textureFile.seekg(0, ios::end);
-				size_t fileSize = textureFile.tellg();
-				textureFile.seekg(0, ios::beg);
-
-				string magicWord = "PZPK";
-				vector<byte> fileData(fileSize);
-
-				bool toSanitize = needSanitization(fileData, magicWord);
-
-				textureFile.read((char *)fileData.data(), fileSize);
-				textureFile.close();
-
-				BinaryShiftReader *reader = nullptr;
-				reader = new BinaryShiftReader(&fileData);
-
-				if (toSanitize) {
-					reader->read_bytes(&fileData, 8);
-				}
-
-				TexturePack texturePack;
-
-				reader->read_uint32(nullptr);
-
-				uint8_t texturePackNameSize = 0;
-				reader->read_int32((int32_t *)&texturePackNameSize);
-
-				vector<byte> texturePackNameBytes;
-
-				reader->read_bytes(&texturePackNameBytes, texturePackNameSize);
-
-				texturePack.name = string((char *)texturePackNameBytes.data(),
-										  texturePackNameSize);
-
-				reader->read_int32((int32_t *)&texturePack.size);
-				reader->read_int32((int32_t *)&texturePack.alpha);
-
-				for (size_t i = 0; i < texturePack.size; ++i) {
-
-					Texture texture;
-
-					uint8_t textureNameSize = 0;
-					reader->read_int32((int32_t *)&textureNameSize);
-
-					vector<byte> textureNameBytes;
-
-					reader->read_bytes(&textureNameBytes, textureNameSize);
-
-					texture.name = string((char *)textureNameBytes.data(),
-										  textureNameSize);
-
-					reader->read_int32((int32_t *)&texture.x);
-					reader->read_int32((int32_t *)&texture.y);
-					reader->read_int32((int32_t *)&texture.w);
-					reader->read_int32((int32_t *)&texture.h);
-					reader->read_int32((int32_t *)&texture.ox);
-					reader->read_int32((int32_t *)&texture.oy);
-					reader->read_int32((int32_t *)&texture.ow);
-					reader->read_int32((int32_t *)&texture.oh);
-				}
-
-				printf("Texture Pack: %s\n", texturePack.name.c_str());
-
-				auto textureChunk = fileData;
-
-				filesystem::path texturePackDir =
-					texturesDir / texturePack.name;
-
-				filesystem::create_directory(texturePackDir);
-
-				filesystem::path texturePackFile =
-					texturesDir / (texturePack.name + ".png");
-
-				ofstream texturePackFileOut(texturePackFile, ios::out);
-
-				if (!texturePackFileOut.is_open()) {
-					printf("Failed to open file.\n");
-					return 1;
-				}
-
-				texturePackFileOut.write((char *)textureChunk.data(),
-										 textureChunk.size());
-
-				delete reader;
+			if (!found) {
+				continue;
 			}
 		}
+
+		string filePath = entry.path();
+		string fileName = entry.path().filename();
+
+		ifstream textureFile(entry.path(), ios::in);
+
+		if (!textureFile.is_open()) {
+			printf("Failed to open file.\n");
+			return 1;
+		}
+
+		printf("Texture Pack File: %s\n", fileName.c_str());
+
+		textureFile.seekg(0, ios::end);
+		size_t fileSize = textureFile.tellg();
+		textureFile.seekg(0, ios::beg);
+
+		string magicWord = "PZPK";
+		vector<byte> fileData(fileSize);
+
+		bool toSanitize = needSanitization(fileData, magicWord);
+
+		textureFile.read((char *)fileData.data(), fileSize);
+		textureFile.close();
+
+		BinaryShiftReader *reader = nullptr;
+		reader = new BinaryShiftReader(&fileData);
+
+		if (toSanitize) {
+			reader->read_bytes(&fileData, 8);
+		}
+
+		TexturePack texturePack;
+
+		reader->read_uint32(nullptr);
+
+		uint8_t texturePackNameSize = 0;
+		reader->read_int32((int32_t *)&texturePackNameSize);
+
+		vector<byte> texturePackNameBytes;
+
+		reader->read_bytes(&texturePackNameBytes, texturePackNameSize);
+
+		texturePack.name =
+			string((char *)texturePackNameBytes.data(), texturePackNameSize);
+
+		reader->read_int32((int32_t *)&texturePack.size);
+		reader->read_int32((int32_t *)&texturePack.alpha);
+
+		for (size_t i = 0; i < texturePack.size; ++i) {
+
+			Texture texture;
+
+			uint8_t textureNameSize = 0;
+			reader->read_int32((int32_t *)&textureNameSize);
+
+			vector<byte> textureNameBytes;
+
+			reader->read_bytes(&textureNameBytes, textureNameSize);
+
+			texture.name =
+				string((char *)textureNameBytes.data(), textureNameSize);
+
+			reader->read_int32((int32_t *)&texture.x);
+			reader->read_int32((int32_t *)&texture.y);
+			reader->read_int32((int32_t *)&texture.w);
+			reader->read_int32((int32_t *)&texture.h);
+			reader->read_int32((int32_t *)&texture.ox);
+			reader->read_int32((int32_t *)&texture.oy);
+			reader->read_int32((int32_t *)&texture.ow);
+			reader->read_int32((int32_t *)&texture.oh);
+		}
+
+		printf("Texture Pack: %s\n", texturePack.name.c_str());
+
+		auto textureChunk = fileData;
+
+		filesystem::path texturePackDir = texturesDir / texturePack.name;
+
+		filesystem::create_directory(texturePackDir);
+
+		filesystem::path texturePackFile =
+			texturesDir / (texturePack.name + ".png");
+
+		ofstream texturePackFileOut(texturePackFile, ios::out);
+
+		if (!texturePackFileOut.is_open()) {
+			printf("Failed to open file.\n");
+			return 1;
+		}
+
+		texturePackFileOut.write((char *)textureChunk.data(),
+								 textureChunk.size());
+
+		delete reader;
 	}
 
 	return 0;
