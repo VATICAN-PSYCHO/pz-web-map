@@ -1,3 +1,6 @@
+#ifndef CUSTOM_STRUCTS_HPP
+#define CUSTOM_STRUCTS_HPP
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -25,3 +28,5 @@ struct Texture {
 	uint32_t ow;
 	uint32_t oh;
 };
+
+#endif

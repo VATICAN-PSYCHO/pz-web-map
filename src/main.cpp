@@ -158,8 +158,8 @@ int main(int argc, char *argv[]) {
 
 		reader->read_bytes_vector(&texturePackNameBytes, texturePackNameSize);
 
-		texturePack.name =
-			string((char *)texturePackNameBytes.data(), texturePackNameSize);
+		texturePack.name = string((char *)texturePackNameBytes.data(),
+								  texturePackNameSize - 1);
 
 		reader->read_int32((int32_t *)&texturePack.size);
 		reader->read_int32((int32_t *)&texturePack.alpha);
@@ -197,7 +197,7 @@ int main(int argc, char *argv[]) {
 		filesystem::create_directory(texturePackDir);
 
 		filesystem::path texturePackFile =
-			texturesDir / (texturePack.name + ".png");
+			texturesDir / texturePack.name / ("index.png");
 
 		std::ofstream texturePackFileOut(texturePackFile, std::ios::out);
 
