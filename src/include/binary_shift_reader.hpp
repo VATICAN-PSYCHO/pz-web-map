@@ -6,6 +6,8 @@
 #include <cstring>
 #include <vector>
 
+using namespace std;
+
 class BinaryShiftReader {
   public:
 	BinaryShiftReader(vector<byte> *data);

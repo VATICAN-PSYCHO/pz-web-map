@@ -1,7 +1,9 @@
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
-#include <string>
 #include <vector>
+
+using namespace std;
 
 struct TexturePack {
 	string name;

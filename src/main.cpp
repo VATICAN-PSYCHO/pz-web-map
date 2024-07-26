@@ -1,5 +1,6 @@
 #include "include/binary_shift_reader.hpp"
 #include "include/custom_structs.hpp"
+
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
