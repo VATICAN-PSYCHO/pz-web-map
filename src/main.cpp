@@ -2,6 +2,7 @@
 #include "include/custom_structs.hpp"
 
 #include <cstdint>
+#include <deque>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -9,15 +10,19 @@
 
 #include "yaml-cpp/yaml.h"
 
-using namespace std;
+using std::byte;
+using std::deque;
+using std::string;
+using std::vector;
+namespace filesystem = std::filesystem;
 
-bool needSanitization(vector<byte> &data, string &sanitizeText) {
+bool needSanitization(deque<byte> &data, string &sanitizeText) {
 
 	if (data.size() < sanitizeText.size()) {
 		return false;
 	}
 
-	for (size_t i = 0; i < sanitizeText.size(); ++i) {
+	for (std::size_t i = 0; i < sanitizeText.size(); ++i) {
 		if (data[i] != byte(sanitizeText[i])) {
 			return false;
 		}
@@ -111,7 +116,7 @@ int main(int argc, char *argv[]) {
 		string filePath = entry.path();
 		string fileName = entry.path().filename();
 
-		ifstream textureFile(entry.path(), ios::in);
+		std::ifstream textureFile(entry.path(), std::ios::in);
 
 		if (!textureFile.is_open()) {
 			printf("Failed to open file.\n");
@@ -120,23 +125,26 @@ int main(int argc, char *argv[]) {
 
 		printf("Texture Pack File: %s\n", fileName.c_str());
 
-		textureFile.seekg(0, ios::end);
-		size_t fileSize = textureFile.tellg();
-		textureFile.seekg(0, ios::beg);
+		textureFile.seekg(0, std::ios::end);
+		std::size_t fileSize = textureFile.tellg();
+		textureFile.seekg(0, std::ios::beg);
+
+		vector<byte> tmpBuffer(fileSize);
+
+		textureFile.read((char *)tmpBuffer.data(), fileSize);
+		textureFile.close();
+
+		deque<byte> fileData(tmpBuffer.begin(), tmpBuffer.end());
 
 		string magicWord = "PZPK";
-		vector<byte> fileData(fileSize);
 
 		bool toSanitize = needSanitization(fileData, magicWord);
-
-		textureFile.read((char *)fileData.data(), fileSize);
-		textureFile.close();
 
 		BinaryShiftReader *reader = nullptr;
 		reader = new BinaryShiftReader(&fileData);
 
 		if (toSanitize) {
-			reader->read_bytes(&fileData, 8);
+			reader->read_uint64(nullptr);
 		}
 
 		TexturePack texturePack;
@@ -148,7 +156,7 @@ int main(int argc, char *argv[]) {
 
 		vector<byte> texturePackNameBytes;
 
-		reader->read_bytes(&texturePackNameBytes, texturePackNameSize);
+		reader->read_bytes_vector(&texturePackNameBytes, texturePackNameSize);
 
 		texturePack.name =
 			string((char *)texturePackNameBytes.data(), texturePackNameSize);
@@ -165,7 +173,7 @@ int main(int argc, char *argv[]) {
 
 			vector<byte> textureNameBytes;
 
-			reader->read_bytes(&textureNameBytes, textureNameSize);
+			reader->read_bytes_vector(&textureNameBytes, textureNameSize);
 
 			texture.name =
 				string((char *)textureNameBytes.data(), textureNameSize);
@@ -191,15 +199,19 @@ int main(int argc, char *argv[]) {
 		filesystem::path texturePackFile =
 			texturesDir / (texturePack.name + ".png");
 
-		ofstream texturePackFileOut(texturePackFile, ios::out);
+		std::ofstream texturePackFileOut(texturePackFile, std::ios::out);
 
 		if (!texturePackFileOut.is_open()) {
 			printf("Failed to open file.\n");
 			return 1;
 		}
 
-		texturePackFileOut.write((char *)textureChunk.data(),
-								 textureChunk.size());
+		for (const auto &byte : textureChunk) {
+			texturePackFileOut.write(reinterpret_cast<const char *>(&byte),
+									 sizeof(byte));
+		}
+
+		texturePackFileOut.close();
 
 		delete reader;
 	}

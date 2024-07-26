@@ -4,13 +4,16 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <deque>
 #include <vector>
 
-using namespace std;
+using std::byte;
+using std::deque;
+using std::vector;
 
 class BinaryShiftReader {
   public:
-	BinaryShiftReader(vector<byte> *data);
+	BinaryShiftReader(deque<byte> *data);
 	~BinaryShiftReader();
 
   public:
@@ -24,11 +27,11 @@ class BinaryShiftReader {
 	void read_int32(int32_t *value);
 	void read_int64(int64_t *value);
 
-	void read_bytes(vector<byte> *value, size_t size);
+	void read_bytes_vector(vector<byte> *value, size_t size);
 
   private:
-	vector<byte> *binaryData;
-	void safe_copy_memory(byte *dest, byte *src, size_t size);
+	deque<byte> *binaryData;
+	void safe_copy_memory(byte *dest, std::deque<byte>::iterator, size_t size);
 };
 
 #endif

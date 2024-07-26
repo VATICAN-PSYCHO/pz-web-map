@@ -1,9 +1,10 @@
 #include <cstdint>
-#include <cstring>
-#include <filesystem>
+#include <string>
 #include <vector>
 
-using namespace std;
+using std::byte;
+using std::string;
+using std::vector;
 
 struct TexturePack {
 	string name;
