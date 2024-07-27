@@ -27,11 +27,12 @@ class BinaryShiftReader {
 	void read_int32(int32_t *value);
 	void read_int64(int64_t *value);
 
-	void read_bytes_vector(vector<byte> *value, size_t size);
+	void read_bytes_vector(vector<byte> *value, std::size_t size);
 
   private:
 	deque<byte> *binaryData;
-	void safe_copy_memory(byte *dest, std::deque<byte>::iterator, size_t size);
+	void safe_copy_memory(byte *dest, std::deque<byte>::iterator,
+						  std::size_t size);
 };
 
 #endif

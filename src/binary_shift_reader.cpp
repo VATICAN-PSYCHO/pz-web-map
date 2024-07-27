@@ -1,4 +1,4 @@
-#include "binary_shift_reader.hpp"
+#include "include/binary_shift_reader.hpp"
 
 BinaryShiftReader::BinaryShiftReader(deque<byte> *data) {
 	this->binaryData = data;
@@ -70,17 +70,20 @@ void BinaryShiftReader::read_int64(int64_t *value) {
 	binaryData->erase(binaryData->begin(), binaryData->begin() + 8);
 }
 
-void BinaryShiftReader::read_bytes_vector(vector<byte> *value, size_t size) {
+void BinaryShiftReader::read_bytes_vector(vector<byte> *value,
+										  std::size_t size) {
 
-	value->insert(value->begin(), binaryData->begin(),
-				  binaryData->begin() + size);
+	if (value != nullptr)
+
+		value->insert(value->begin(), binaryData->begin(),
+					  binaryData->begin() + size);
 
 	binaryData->erase(binaryData->begin(), binaryData->begin() + size);
 }
 
 void BinaryShiftReader::safe_copy_memory(byte *dest,
 										 std::deque<byte>::iterator src,
-										 size_t size) {
+										 std::size_t size) {
 	if (dest != nullptr && std::distance(src, binaryData->end()) >= size)
 		memcpy(dest, &(*src), size);
 }

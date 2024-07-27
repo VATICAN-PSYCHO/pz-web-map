@@ -4,3 +4,5 @@ build/
 var/
 
 config.yaml
+
+heaptrack.*.zst

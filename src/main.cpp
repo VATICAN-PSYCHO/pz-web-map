@@ -16,19 +16,28 @@ using std::string;
 using std::vector;
 namespace filesystem = std::filesystem;
 
-bool needSanitization(deque<byte> &data, string &sanitizeText) {
+bool needSanitization(deque<byte> *data, string *sanitizeText) {
 
-	if (data.size() < sanitizeText.size()) {
+	if (data->size() < sanitizeText->size()) {
 		return false;
 	}
 
-	for (std::size_t i = 0; i < sanitizeText.size(); ++i) {
-		if (data[i] != byte(sanitizeText[i])) {
+	for (std::size_t i = 0; i < sanitizeText->size(); ++i) {
+		if (data->at(i) != byte(sanitizeText->at(i))) {
 			return false;
 		}
 	}
 
 	return true;
+}
+
+bool sanitizeRequired = false;
+
+void de_allocate(void *ptr) {
+	if (ptr != nullptr) {
+		delete ptr;
+		ptr = nullptr;
+	}
 }
 
 int main(int argc, char *argv[]) {
@@ -92,17 +101,21 @@ int main(int argc, char *argv[]) {
 
 	vector<string> includePacks = config["include_packs"].as<vector<string>>();
 
-	for (const auto &entry : filesystem::directory_iterator(texturePacksDir)) {
+	string magicWord = "PZPK";
+	// bool sanitizeRequired = false;
 
-		if (entry.is_directory()) {
+	for (const auto &texturePackDirEntry :
+		 filesystem::directory_iterator(texturePacksDir)) {
+
+		if (texturePackDirEntry.is_directory()) {
 			continue;
 		}
 
 		if (includePacks.size() > 0) {
 			bool found = false;
 
-			for (size_t i = 0; i < includePacks.size(); ++i) {
-				if (entry.path().filename() == includePacks[i]) {
+			for (std::size_t i = 0; i < includePacks.size(); ++i) {
+				if (texturePackDirEntry.path().filename() == includePacks[i]) {
 					found = true;
 					break;
 				}
@@ -113,107 +126,122 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		string filePath = entry.path();
-		string fileName = entry.path().filename();
+		string texturePackFilePath = texturePackDirEntry.path();
+		string texturePackFileName = texturePackDirEntry.path().filename();
+		string texturePackBaseName = texturePackDirEntry.path().stem();
 
-		std::ifstream textureFile(entry.path(), std::ios::in);
+		std::ifstream textureFile(texturePackFilePath, std::ios::in);
 
 		if (!textureFile.is_open()) {
-			printf("Failed to open file.\n");
-			return 1;
+			printf("Failed to open texturepack file.\n");
+			continue;
 		}
 
-		printf("Texture Pack File: %s\n", fileName.c_str());
+		printf("Texture pack file: %s\n", texturePackFileName.c_str());
+		printf("Texture pack size: %d MB\n",
+			   filesystem::file_size(texturePackFilePath) / 1024 / 1024);
 
 		textureFile.seekg(0, std::ios::end);
 		std::size_t fileSize = textureFile.tellg();
 		textureFile.seekg(0, std::ios::beg);
 
-		vector<byte> tmpBuffer(fileSize);
+		deque<byte> *fileData = new deque<byte>(fileSize);
 
-		textureFile.read((char *)tmpBuffer.data(), fileSize);
+		vector<byte> *tmpBuffer = new vector<byte>(fileSize);
+
+		textureFile.read((char *)tmpBuffer->data(), fileSize);
+
+		fileData->assign(tmpBuffer->begin(), tmpBuffer->end());
+
+		tmpBuffer->clear();
+		de_allocate(tmpBuffer);
+
 		textureFile.close();
 
-		deque<byte> fileData(tmpBuffer.begin(), tmpBuffer.end());
+		BinaryShiftReader *reader = new BinaryShiftReader(fileData);
 
-		string magicWord = "PZPK";
+		sanitizeRequired = needSanitization(fileData, &magicWord);
 
-		bool toSanitize = needSanitization(fileData, magicWord);
-
-		BinaryShiftReader *reader = nullptr;
-		reader = new BinaryShiftReader(&fileData);
-
-		if (toSanitize) {
+		if (sanitizeRequired) {
 			reader->read_uint64(nullptr);
 		}
 
-		TexturePack texturePack;
+		TexturePack *texturePack = new TexturePack();
 
 		reader->read_uint32(nullptr);
 
 		uint8_t texturePackNameSize = 0;
-		reader->read_int32((int32_t *)&texturePackNameSize);
+		reader->read_uint32((uint32_t *)&texturePackNameSize);
 
-		vector<byte> texturePackNameBytes;
+		vector<byte> texturePackNameBytes(texturePackNameSize);
 
 		reader->read_bytes_vector(&texturePackNameBytes, texturePackNameSize);
 
-		texturePack.name = string((char *)texturePackNameBytes.data(),
-								  texturePackNameSize - 1);
+		texturePack->name = string((char *)texturePackNameBytes.data(),
+								   texturePackNameSize - 1);
 
-		reader->read_int32((int32_t *)&texturePack.size);
-		reader->read_int32((int32_t *)&texturePack.alpha);
+		reader->read_uint32((uint32_t *)&texturePack->size);
+		reader->read_uint32((uint32_t *)&texturePack->alpha);
 
-		for (size_t i = 0; i < texturePack.size; ++i) {
+		for (std::size_t i = 0; i < texturePack->size; ++i) {
 
-			Texture texture;
+			Texture *texture = new Texture();
 
 			uint8_t textureNameSize = 0;
-			reader->read_int32((int32_t *)&textureNameSize);
-
-			vector<byte> textureNameBytes;
-
+			reader->read_uint32((uint32_t *)&textureNameSize);
+			vector<byte> textureNameBytes(textureNameSize);
 			reader->read_bytes_vector(&textureNameBytes, textureNameSize);
 
-			texture.name =
+			texture->name =
 				string((char *)textureNameBytes.data(), textureNameSize);
 
-			reader->read_int32((int32_t *)&texture.x);
-			reader->read_int32((int32_t *)&texture.y);
-			reader->read_int32((int32_t *)&texture.w);
-			reader->read_int32((int32_t *)&texture.h);
-			reader->read_int32((int32_t *)&texture.ox);
-			reader->read_int32((int32_t *)&texture.oy);
-			reader->read_int32((int32_t *)&texture.ow);
-			reader->read_int32((int32_t *)&texture.oh);
+			reader->read_uint32((uint32_t *)&texture->x);
+			reader->read_uint32((uint32_t *)&texture->y);
+			reader->read_uint32((uint32_t *)&texture->w);
+			reader->read_uint32((uint32_t *)&texture->h);
+			reader->read_uint32((uint32_t *)&texture->ox);
+			reader->read_uint32((uint32_t *)&texture->oy);
+			reader->read_uint32((uint32_t *)&texture->ow);
+			reader->read_uint32((uint32_t *)&texture->oh);
+
+			de_allocate(texture);
 		}
 
-		printf("Texture Pack: %s\n", texturePack.name.c_str());
+		if (sanitizeRequired) {
+			uint32_t textureChunkSize = 0;
+			reader->read_uint32(&textureChunkSize);
+		}
+
+		printf("Texture Pack: %s\n", texturePack->name.c_str());
 
 		auto textureChunk = fileData;
 
-		filesystem::path texturePackDir = texturesDir / texturePack.name;
+		filesystem::path texturePackDir = texturesDir / texturePack->name;
 
 		filesystem::create_directory(texturePackDir);
 
-		filesystem::path texturePackFile =
-			texturesDir / texturePack.name / ("index.png");
+		filesystem::path textureChunkFile =
+			texturesDir / texturePack->name / (texturePackBaseName + ".png");
 
-		std::ofstream texturePackFileOut(texturePackFile, std::ios::out);
+		std::fstream texturePackFileOutStream;
 
-		if (!texturePackFileOut.is_open()) {
-			printf("Failed to open file.\n");
-			return 1;
+		texturePackFileOutStream.open(textureChunkFile,
+									  std::ios::out | std::ios::binary);
+
+		if (!texturePackFileOutStream.is_open()) {
+			printf("Failed to open texture file.\n");
+			continue;
 		}
 
-		for (const auto &byte : textureChunk) {
-			texturePackFileOut.write(reinterpret_cast<const char *>(&byte),
-									 sizeof(byte));
+		for (std::size_t i = 0; i < textureChunk->size(); ++i) {
+			texturePackFileOutStream << (char)textureChunk->at(i);
 		}
 
-		texturePackFileOut.close();
+		texturePackFileOutStream.close();
 
-		delete reader;
+		de_allocate(texturePack);
+		de_allocate(fileData);
+		de_allocate(reader);
 	}
 
 	return 0;
