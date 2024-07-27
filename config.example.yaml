@@ -1,0 +1,33 @@
+# This is an example of the config file
+
+# Note how this games is storred (really, double check for yourself)
+game_dir: "/home/user/Steam/steamapps/common/ProjectZomboid/projectzomboid"
+  
+workshop_dir: "/home/user/Steam/steamapps/workshop/content/108600"
+
+execution:
+  parallel: true
+  threads: 12
+
+include_packs: # This still need tunning
+  # - ApCom_old.pack      # not needed
+  # - ApComUI.pack        # not needed
+  # - Characters.pack     # not needed
+  - Erosion.pack
+  # - IconsMoveables.pack # not needed
+  - JumboTrees1x.pack
+  - JumboTrees2x.pack
+  - Overlays1x.pack
+  - Overlays2x.pack
+  - Tiles1x.floor.pack
+  - Tiles1x.pack
+  - Tiles2x.floor.pack
+  - Tiles2x.pack
+  # - UI.pack             # not needed
+  # - UI2.pack            # not needed
+  # - WeatherFx.pack      # not needed
+
+
+mods:
+  include_mods: # mod name from mod.info
+    -

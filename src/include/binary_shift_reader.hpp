@@ -13,12 +13,12 @@ using std::vector;
 
 class BinaryShiftReader {
   public:
-	BinaryShiftReader(deque<byte> *data);
+	BinaryShiftReader(vector<byte> *data, std::size_t *offset);
 	~BinaryShiftReader();
 
   public:
 	void read_uint8(uint8_t *value);
-	void read_uint16(uint16_t *value);
+	void read_uint16(uint8_t *value);
 	void read_uint32(uint32_t *value);
 	void read_uint64(uint64_t *value);
 
@@ -27,12 +27,12 @@ class BinaryShiftReader {
 	void read_int32(int32_t *value);
 	void read_int64(int64_t *value);
 
-	void read_bytes_vector(vector<byte> *value, std::size_t size);
+	void read_chars(char *value, std::size_t size);
 
   private:
-	deque<byte> *binaryData;
-	void safe_copy_memory(byte *dest, std::deque<byte>::iterator,
-						  std::size_t size);
+	vector<byte> *data;
+	std::size_t *offset;
+	void safe_copy_memory(byte *dest, std::size_t size);
 };
 
 #endif

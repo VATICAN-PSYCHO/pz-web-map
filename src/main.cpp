@@ -1,22 +1,30 @@
 #include "include/binary_shift_reader.hpp"
-#include "include/custom_structs.hpp"
+#include "include/mod_manager.hpp"
+#include "include/settings.hpp"
+#include "include/texture.hpp"
+#include "include/texture_pack.hpp"
 
 #include <cstdint>
-#include <deque>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "yaml-cpp/yaml.h"
 
 using std::byte;
-using std::deque;
 using std::string;
 using std::vector;
+
 namespace filesystem = std::filesystem;
 
-bool needSanitization(deque<byte> *data, string *sanitizeText) {
+ModManager modManager;
+
+bool sanitizeRequired = false;
+string magicWord = "PZPK";
+
+bool needSanitization(vector<byte> *data, string *sanitizeText) {
 
 	if (data->size() < sanitizeText->size()) {
 		return false;
@@ -31,42 +39,37 @@ bool needSanitization(deque<byte> *data, string *sanitizeText) {
 	return true;
 }
 
-bool sanitizeRequired = false;
+void validate_path(string unsafePath) {
+	if (!filesystem::exists(unsafePath)) {
+		printf("Path does not exist: %s\n", unsafePath.c_str());
+		exit(1);
+	}
 
-void de_allocate(void *ptr) {
-	if (ptr != nullptr) {
-		delete ptr;
-		ptr = nullptr;
+	if (!filesystem::is_directory(unsafePath)) {
+		printf("Path is not a directory: %s\n", unsafePath.c_str());
+		exit(1);
 	}
 }
 
 int main(int argc, char *argv[]) {
 
-	YAML::Node config = YAML::LoadFile("config.yaml");
+	Settings *settings = Settings::getInstance();
 
-	if (!config["game_dir"]) {
-		printf("Game directory not found in config file.\n");
-		return 1;
-	}
+	settings->loadSettings();
 
-	if (!config["mods_dir"]) {
-		printf("Game mods directory not found in config file.\n");
-		return 1;
-	}
+	string gameDir = settings->getGameDir();
+	string steamWorkshopDir = settings->steamWorkshopDir();
+	vector<string> includePacks = settings->getIncludePacksDir();
 
-	string _gameDir = config["game_dir"].as<string>();
-	string _gameModsDir = config["mods_dir"].as<string>();
+	validate_path(gameDir);
+	validate_path(steamWorkshopDir);
 
-	filesystem::path gameDir = filesystem::path(_gameDir);
-	filesystem::path gameModsDir = filesystem::path(_gameModsDir);
+	modManager.loadMods(steamWorkshopDir);
 
-	if (!filesystem::exists(gameDir)) {
-		printf("Game directory does not exist.\n");
-		return 1;
-	}
+	auto mods = modManager.getMods();
 
-	if (!filesystem::exists(gameDir)) {
-		printf("Game directory does not exist.\n");
+	if (includePacks.size() == 0) {
+		printf("No texture packs to include.\n");
 		return 1;
 	}
 
@@ -87,10 +90,13 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	filesystem::path texturePacksDir = gameDir / "media" / "texturepacks";
+	vector<filesystem::path> texturePacks;
+
+	filesystem::path texturePacksDir =
+		filesystem::path(gameDir) / "media" / "texturepacks";
 
 	if (!filesystem::exists(texturePacksDir)) {
-		printf("Texturepacks directory not found.\n");
+		printf("Game texturepacks directory not found.\n");
 		return 1;
 	}
 
@@ -99,11 +105,6 @@ int main(int argc, char *argv[]) {
 
 	filesystem::create_directories(texturesDir);
 
-	vector<string> includePacks = config["include_packs"].as<vector<string>>();
-
-	string magicWord = "PZPK";
-	// bool sanitizeRequired = false;
-
 	for (const auto &texturePackDirEntry :
 		 filesystem::directory_iterator(texturePacksDir)) {
 
@@ -111,22 +112,21 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 
-		if (includePacks.size() > 0) {
-			bool found = false;
+		bool found = false;
 
-			for (std::size_t i = 0; i < includePacks.size(); ++i) {
-				if (texturePackDirEntry.path().filename() == includePacks[i]) {
-					found = true;
-					break;
-				}
-			}
-
-			if (!found) {
-				continue;
+		for (std::size_t i = 0; i < includePacks.size(); ++i) {
+			if (texturePackDirEntry.path().filename() == includePacks[i]) {
+				found = true;
+				break;
 			}
 		}
 
+		if (!found) {
+			continue;
+		}
+
 		string texturePackFilePath = texturePackDirEntry.path();
+
 		string texturePackFileName = texturePackDirEntry.path().filename();
 		string texturePackBaseName = texturePackDirEntry.path().stem();
 
@@ -137,6 +137,9 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 
+		std::unique_ptr<TexturePack> texturePack =
+			std::make_unique<TexturePack>();
+
 		printf("Texture pack file: %s\n", texturePackFileName.c_str());
 		printf("Texture pack size: %d MB\n",
 			   filesystem::file_size(texturePackFilePath) / 1024 / 1024);
@@ -145,28 +148,20 @@ int main(int argc, char *argv[]) {
 		std::size_t fileSize = textureFile.tellg();
 		textureFile.seekg(0, std::ios::beg);
 
-		deque<byte> *fileData = new deque<byte>(fileSize);
+		std::size_t dataBufferOffset = 0;
+		vector<byte> *dataBuffer = new vector<byte>(fileSize);
 
-		vector<byte> *tmpBuffer = new vector<byte>(fileSize);
-
-		textureFile.read((char *)tmpBuffer->data(), fileSize);
-
-		fileData->assign(tmpBuffer->begin(), tmpBuffer->end());
-
-		tmpBuffer->clear();
-		de_allocate(tmpBuffer);
-
+		textureFile.read((char *)dataBuffer->data(), fileSize);
 		textureFile.close();
 
-		BinaryShiftReader *reader = new BinaryShiftReader(fileData);
+		std::unique_ptr<BinaryShiftReader> reader =
+			std::make_unique<BinaryShiftReader>(dataBuffer, &dataBufferOffset);
 
-		sanitizeRequired = needSanitization(fileData, &magicWord);
+		sanitizeRequired = needSanitization(dataBuffer, &magicWord);
 
 		if (sanitizeRequired) {
 			reader->read_uint64(nullptr);
 		}
-
-		TexturePack *texturePack = new TexturePack();
 
 		reader->read_uint32(nullptr);
 
@@ -175,22 +170,21 @@ int main(int argc, char *argv[]) {
 
 		vector<byte> texturePackNameBytes(texturePackNameSize);
 
-		reader->read_bytes_vector(&texturePackNameBytes, texturePackNameSize);
-
-		texturePack->name = string((char *)texturePackNameBytes.data(),
-								   texturePackNameSize - 1);
+		reader->read_chars((char *)texturePackNameBytes.data(),
+						   texturePackNameSize);
 
 		reader->read_uint32((uint32_t *)&texturePack->size);
 		reader->read_uint32((uint32_t *)&texturePack->alpha);
 
 		for (std::size_t i = 0; i < texturePack->size; ++i) {
 
-			Texture *texture = new Texture();
+			std::unique_ptr<Texture> texture = std::make_unique<Texture>();
 
 			uint8_t textureNameSize = 0;
 			reader->read_uint32((uint32_t *)&textureNameSize);
 			vector<byte> textureNameBytes(textureNameSize);
-			reader->read_bytes_vector(&textureNameBytes, textureNameSize);
+			reader->read_chars((char *)textureNameBytes.data(),
+							   textureNameSize);
 
 			texture->name =
 				string((char *)textureNameBytes.data(), textureNameSize);
@@ -203,8 +197,6 @@ int main(int argc, char *argv[]) {
 			reader->read_uint32((uint32_t *)&texture->oy);
 			reader->read_uint32((uint32_t *)&texture->ow);
 			reader->read_uint32((uint32_t *)&texture->oh);
-
-			de_allocate(texture);
 		}
 
 		if (sanitizeRequired) {
@@ -213,8 +205,6 @@ int main(int argc, char *argv[]) {
 		}
 
 		printf("Texture Pack: %s\n", texturePack->name.c_str());
-
-		auto textureChunk = fileData;
 
 		filesystem::path texturePackDir = texturesDir / texturePack->name;
 
@@ -233,15 +223,11 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 
-		for (std::size_t i = 0; i < textureChunk->size(); ++i) {
-			texturePackFileOutStream << (char)textureChunk->at(i);
-		}
+		texturePackFileOutStream.write((char *)dataBuffer->data() +
+										   dataBufferOffset,
+									   dataBuffer->size() - dataBufferOffset);
 
 		texturePackFileOutStream.close();
-
-		de_allocate(texturePack);
-		de_allocate(fileData);
-		de_allocate(reader);
 	}
 
 	return 0;
