@@ -1,4 +1,4 @@
-#include "include/texture.hpp"
+#include "texture.hpp"
 
 Texture::Texture() {}
 Texture::~Texture() {}
@@ -7,34 +7,42 @@ void Texture::setName(string name) { this->name = name; }
 
 string Texture::getName() { return this->name; }
 
-void Texture::setX(uint32_t x) { this->x = x; }
+void Texture::setXCord(int32_t xCord) { this->xCord = xCord; }
 
-uint32_t Texture::getX() { return this->x; }
+int32_t Texture::getXCord() { return this->xCord; }
 
-void Texture::setY(uint32_t y) { this->y = y; }
+void Texture::setYCord(int32_t yCord) { this->yCord = yCord; }
 
-uint32_t Texture::getY() { return this->y; }
+int32_t Texture::getYCord() { return this->yCord; }
 
-void Texture::setW(uint32_t w) { this->w = w; }
+void Texture::setWidth(int32_t width) { this->width = width; }
 
-uint32_t Texture::getW() { return this->w; }
+int32_t Texture::getWidth() { return this->width; }
 
-void Texture::setH(uint32_t h) { this->h = h; }
+void Texture::setHeight(int32_t height) { this->height = height; }
 
-uint32_t Texture::getH() { return this->h; }
+int32_t Texture::getHeight() { return this->height; }
 
-void Texture::setOx(uint32_t ox) { this->ox = ox; }
+void Texture::setXCordOffset(int32_t xCordOffset) {
+	this->xCordOffset = xCordOffset;
+}
 
-uint32_t Texture::getOx() { return this->ox; }
+int32_t Texture::getXCordOffset() { return this->xCordOffset; }
 
-void Texture::setOy(uint32_t oy) { this->oy = oy; }
+void Texture::setYOffset(int32_t yCordOffset) {
+	this->yCordOffset = yCordOffset;
+}
 
-uint32_t Texture::getOy() { return this->oy; }
+int32_t Texture::getYOffset() { return this->yCordOffset; }
 
-void Texture::setOw(uint32_t ow) { this->ow = ow; }
+void Texture::setWidthOffset(int32_t widthOffset) {
+	this->widthOffset = widthOffset;
+}
 
-uint32_t Texture::getOw() { return this->ow; }
+int32_t Texture::getWidthOffset() { return this->widthOffset; }
 
-void Texture::setOh(uint32_t oh) { this->oh = oh; }
+void Texture::setHeightOffset(int32_t heightOffset) {
+	this->heightOffset = heightOffset;
+}
 
-uint32_t Texture::getOh() { return this->oh; }
+int32_t Texture::getHeightOffset() { return this->heightOffset; }

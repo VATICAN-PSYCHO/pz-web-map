@@ -21,12 +21,19 @@ class Mod {
 	void addDependency(std::shared_ptr<Mod> mod);
 	void addDependant(std::shared_ptr<Mod> mod);
 
-	vector<std::shared_ptr<Mod>> getDependencies() const;
-	vector<std::shared_ptr<Mod>> getDependants() const;
-	vector<string> getRawDependencies() const;
+	vector<std::shared_ptr<Mod>> getDependencies();
+	vector<std::shared_ptr<Mod>> getDependants();
+	vector<string> getRawDependencies();
 	void setRawDependencies(const vector<string> rawDependencies);
+
 	void setType(ModType type);
-	ModType getType() const;
+	ModType getType();
+
+	string getId();
+	uint64_t getSteamId();
+	string getName();
+	string getPack();
+	string getPath();
 
   private:
 	string id;

@@ -20,7 +20,6 @@ class ModManager {
 	void loadMods(string path);
 	void addMod(string id, std::shared_ptr<Mod> mod);
 	auto getMods() { return mods; }
-	
 
   private:
 	Settings *settings = Settings::getInstance();

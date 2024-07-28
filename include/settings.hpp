@@ -27,6 +27,7 @@ class Settings {
 	void loadSettings();
 	string getGameDir();
 	string steamWorkshopDir();
+	string getOutputDir();
 	vector<string> getIncludePacksDir();
 
 	bool isParallel() { return execution.parallel; }
@@ -36,6 +37,7 @@ class Settings {
 	static Settings *instance;
 	string gameDir;
 	string workshopDir;
+	string outputDir;
 	vector<string> includePacksDir;
 	Execution execution;
 };

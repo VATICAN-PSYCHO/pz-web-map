@@ -1,4 +1,4 @@
-#include "include/settings.hpp"
+#include "settings.hpp"
 
 using std::string;
 using std::vector;
@@ -6,6 +6,7 @@ using std::vector;
 Settings::Settings() {
 	gameDir = "";
 	workshopDir = "";
+	outputDir = "";
 	includePacksDir = {};
 	execution = {false, 0};
 }
@@ -21,6 +22,11 @@ void Settings::loadSettings() {
 
 	if (!config["workshop_dir"]) {
 		printf("Game mods directory not found in config file.\n");
+		exit(1);
+	}
+
+	if (!config["output_dir"]) {
+		printf("Output directory not found in config file.\n");
 		exit(1);
 	}
 
@@ -41,12 +47,15 @@ void Settings::loadSettings() {
 
 	gameDir = config["game_dir"].as<string>();
 	workshopDir = config["workshop_dir"].as<string>();
+	outputDir = config["output_dir"].as<string>();
 	includePacksDir = config["include_packs"].as<vector<string>>();
 }
 
 string Settings::getGameDir() { return gameDir; }
 
 string Settings::steamWorkshopDir() { return workshopDir; }
+
+string Settings::getOutputDir() { return outputDir; }
 
 vector<string> Settings::getIncludePacksDir() { return includePacksDir; }
 

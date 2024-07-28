@@ -1,33 +1,51 @@
-#include "include/mod.hpp"
+#include "mod.hpp"
 
 Mod::Mod(const std::string &id, const std::uint64_t &steamId,
 		 const std::string &name, const std::string &pack,
-		 const std::string &path)
-	: id(id), steamId(steamId), name(name), pack(pack), path(path) {
-	this->dependants = {};
-	this->dependencies = {};
+		 const std::string &path) {
+	this->id = id;
+	this->steamId = steamId;
+	this->name = name;
+	this->pack = pack;
+	this->path = path;
 }
 
 Mod::~Mod() {}
 
 void Mod::addDependency(std::shared_ptr<Mod> mod) {
-	dependencies.push_back(mod);
+	this->dependencies.push_back(mod);
 }
 
-void Mod::addDependant(std::shared_ptr<Mod> mod) { dependants.push_back(mod); }
-
-vector<std::shared_ptr<Mod>> Mod::getDependencies() const {
-	return dependencies;
+void Mod::addDependant(std::shared_ptr<Mod> mod) {
+	this->dependants.push_back(mod);
 }
 
-vector<std::shared_ptr<Mod>> Mod::getDependants() const { return dependants; }
+std::vector<std::shared_ptr<Mod>> Mod::getDependencies() {
+	return this->dependencies;
+}
 
-vector<string> Mod::getRawDependencies() const { return rawDependencies; }
+std::vector<std::shared_ptr<Mod>> Mod::getDependants() {
+	return this->dependants;
+}
 
-void Mod::setRawDependencies(const vector<string> rawDependencies) {
+std::vector<std::string> Mod::getRawDependencies() {
+	return this->rawDependencies;
+}
+
+void Mod::setRawDependencies(const std::vector<std::string> rawDependencies) {
 	this->rawDependencies = rawDependencies;
 }
 
 void Mod::setType(ModType type) { this->type = type; }
 
-ModType Mod::getType() const { return type; }
+ModType Mod::getType() { return this->type; }
+
+std::string Mod::getId() { return this->id; }
+
+std::uint64_t Mod::getSteamId() { return this->steamId; }
+
+std::string Mod::getName() { return this->name; }
+
+std::string Mod::getPack() { return this->pack; }
+
+std::string Mod::getPath() { return this->path; }

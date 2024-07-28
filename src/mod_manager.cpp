@@ -1,4 +1,4 @@
-#include "include/mod_manager.hpp"
+#include "mod_manager.hpp"
 
 #include <cstdint>
 #include <filesystem>
@@ -6,7 +6,7 @@
 #include <string>
 #include <thread>
 
-#include "include/settings.hpp"
+#include "settings.hpp"
 
 using std::string;
 using std::vector;
@@ -41,8 +41,6 @@ void ModManager::loadMods(string path) {
 }
 
 void ModManager::loadModsParallel(std::filesystem::path path) {
-
-	auto threads = settings->getThreads();
 
 	vector<std::thread> workers;
 

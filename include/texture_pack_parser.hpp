@@ -1,0 +1,25 @@
+#ifndef TEXTURE_PACK_PARSER_HPP
+#define TEXTURE_PACK_PARSER_HPP
+
+#include <cstdint>
+#include <filesystem>
+#include <vector>
+
+#include "texture_pack.hpp"
+
+class TexturePackParser {
+  public:
+	TexturePackParser(const std::string &path);
+	~TexturePackParser();
+
+	std::shared_ptr<TexturePack> parse();
+
+	bool needSanitization(std::string sanitizeText);
+
+  private:
+	std::string path;
+	std::size_t dataBufferOffset;
+	std::shared_ptr<std::vector<std::byte>> dataBuffer;
+};
+
+#endif

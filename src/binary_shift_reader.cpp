@@ -1,61 +1,64 @@
-#include "include/binary_shift_reader.hpp"
+#include "binary_shift_reader.hpp"
 
-BinaryShiftReader::BinaryShiftReader(vector<byte> *data, std::size_t *offset) {
+#include <memory>
+
+BinaryShiftReader::BinaryShiftReader(
+	std::shared_ptr<std::vector<std::byte>> data) {
 	this->data = data;
-	this->offset = offset;
+	this->offset = 0;
 }
 
 BinaryShiftReader::~BinaryShiftReader() { this->data = nullptr; }
 
-void BinaryShiftReader::read_uint8(uint8_t *value) {
+void BinaryShiftReader::readUint8(uint8_t *value) {
 
-	this->safe_copy_memory(reinterpret_cast<byte *>(value), sizeof(uint8_t));
+	this->copyMemory(reinterpret_cast<byte *>(value), sizeof(uint8_t));
 }
 
-void BinaryShiftReader::read_uint16(uint8_t *value) {
+void BinaryShiftReader::readUint16(uint8_t *value) {
 
-	this->safe_copy_memory(reinterpret_cast<byte *>(value), sizeof(uint8_t));
+	this->copyMemory(reinterpret_cast<byte *>(value), sizeof(uint8_t));
 }
 
-void BinaryShiftReader::read_uint32(uint32_t *value) {
+void BinaryShiftReader::readUint32(uint32_t *value) {
 
-	this->safe_copy_memory(reinterpret_cast<byte *>(value), sizeof(uint32_t));
+	this->copyMemory(reinterpret_cast<byte *>(value), sizeof(uint32_t));
 }
 
-void BinaryShiftReader::read_uint64(uint64_t *value) {
+void BinaryShiftReader::readUint64(uint64_t *value) {
 
-	this->safe_copy_memory(reinterpret_cast<byte *>(value), sizeof(uint64_t));
+	this->copyMemory(reinterpret_cast<byte *>(value), sizeof(uint64_t));
 }
 
-void BinaryShiftReader::read_int8(int8_t *value) {
+void BinaryShiftReader::readInt8(int8_t *value) {
 
-	this->safe_copy_memory(reinterpret_cast<byte *>(value), sizeof(int8_t));
+	this->copyMemory(reinterpret_cast<byte *>(value), sizeof(int8_t));
 }
 
-void BinaryShiftReader::read_int16(int16_t *value) {
+void BinaryShiftReader::readInt16(int16_t *value) {
 
-	this->safe_copy_memory(reinterpret_cast<byte *>(value), sizeof(int16_t));
+	this->copyMemory(reinterpret_cast<byte *>(value), sizeof(int16_t));
 }
 
-void BinaryShiftReader::read_int32(int32_t *value) {
+void BinaryShiftReader::readInt32(int32_t *value) {
 
-	this->safe_copy_memory(reinterpret_cast<byte *>(value), sizeof(int32_t));
+	this->copyMemory(reinterpret_cast<byte *>(value), sizeof(int32_t));
 }
 
-void BinaryShiftReader::read_int64(int64_t *value) {
+void BinaryShiftReader::readInt64(int64_t *value) {
 
-	this->safe_copy_memory(reinterpret_cast<byte *>(value), sizeof(int64_t));
+	this->copyMemory(reinterpret_cast<byte *>(value), sizeof(int64_t));
 }
 
-void BinaryShiftReader::read_chars(char *value, std::size_t size) {
+void BinaryShiftReader::readChars(char *value, std::size_t size) {
 
-	this->safe_copy_memory(reinterpret_cast<byte *>(value), size);
+	this->copyMemory(reinterpret_cast<byte *>(value), size);
 }
 
-void BinaryShiftReader::safe_copy_memory(byte *dest, std::size_t size) {
+void BinaryShiftReader::copyMemory(byte *dest, std::size_t size) {
 
 	if (dest != nullptr)
-		std::memcpy(dest, this->data->data() + *this->offset, size);
+		std::memcpy(dest, this->data->data() + this->offset, size);
 
-	*this->offset += size;
+	this->offset += size;
 }
