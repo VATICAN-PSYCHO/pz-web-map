@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <vector>
 
+#include "binary_shift_reader.hpp"
 #include "texture_pack.hpp"
 
 class TexturePackParser {
@@ -18,8 +19,7 @@ class TexturePackParser {
 
   private:
 	std::string path;
-	std::size_t dataBufferOffset;
-	std::shared_ptr<std::vector<std::byte>> dataBuffer;
+	std::shared_ptr<BinaryShiftReader> binaryShiftReader;
 };
 
 #endif

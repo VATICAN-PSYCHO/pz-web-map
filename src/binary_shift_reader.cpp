@@ -1,14 +1,16 @@
 #include "binary_shift_reader.hpp"
 
 #include <memory>
+#include <stdexcept>
 
 BinaryShiftReader::BinaryShiftReader(
-	std::shared_ptr<std::vector<std::byte>> data) {
-	this->data = data;
+	std::shared_ptr<std::vector<std::byte>> buffer) {
+
+	this->buffer = buffer;
 	this->offset = 0;
 }
 
-BinaryShiftReader::~BinaryShiftReader() { this->data = nullptr; }
+BinaryShiftReader::~BinaryShiftReader() { this->buffer = nullptr; }
 
 void BinaryShiftReader::readUint8(uint8_t *value) {
 
@@ -50,15 +52,37 @@ void BinaryShiftReader::readInt64(int64_t *value) {
 	this->copyMemory(reinterpret_cast<byte *>(value), sizeof(int64_t));
 }
 
+void BinaryShiftReader::readBytes(byte *value, std::size_t size) {
+
+	this->copyMemory(value, size);
+}
+
 void BinaryShiftReader::readChars(char *value, std::size_t size) {
 
 	this->copyMemory(reinterpret_cast<byte *>(value), size);
 }
 
+std::size_t BinaryShiftReader::getOffset() { return this->offset; }
+
+std::size_t BinaryShiftReader::getSize() { return this->buffer->size(); }
+
+std::byte BinaryShiftReader::at(std::size_t index) {
+
+	if (index >= this->buffer->size())
+		throw std::out_of_range("Index out of range");
+
+	return this->buffer->at(index);
+}
+
+std::shared_ptr<std::vector<std::byte>> BinaryShiftReader::getBuffer() {
+
+	return this->buffer;
+}
+
 void BinaryShiftReader::copyMemory(byte *dest, std::size_t size) {
 
 	if (dest != nullptr)
-		std::memcpy(dest, this->data->data() + this->offset, size);
+		std::memcpy(dest, this->buffer->data() + this->offset, size);
 
 	this->offset += size;
 }

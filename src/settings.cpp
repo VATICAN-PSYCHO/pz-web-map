@@ -1,4 +1,5 @@
 #include "settings.hpp"
+#include "logger.hpp"
 
 using std::string;
 using std::vector;
@@ -13,30 +14,31 @@ Settings::Settings() {
 Settings::~Settings() {}
 
 void Settings::loadSettings() {
+	auto logger = Logger::instance();
 	YAML::Node config = YAML::LoadFile("config.yaml");
 
 	if (!config["game_dir"]) {
-		printf("Game directory not found in config file.\n");
+		logger->error("Game directory not found in config file.");
 		exit(1);
 	}
 
 	if (!config["workshop_dir"]) {
-		printf("Game mods directory not found in config file.\n");
+		logger->error("Workshop directory not found in config file.");
 		exit(1);
 	}
 
 	if (!config["output_dir"]) {
-		printf("Output directory not found in config file.\n");
+		logger->error("Output directory not found in config file.");
 		exit(1);
 	}
 
 	if (!config["include_packs"]) {
-		printf("Include packs not found in config file.\n");
+		logger->error("Include packs not found in config file.");
 		exit(1);
 	}
 
 	if (!config["include_packs"].IsSequence()) {
-		printf("Include packs must be a list.\n");
+		logger->error("Include packs must be a list.");
 		exit(1);
 	}
 
@@ -49,6 +51,8 @@ void Settings::loadSettings() {
 	workshopDir = config["workshop_dir"].as<string>();
 	outputDir = config["output_dir"].as<string>();
 	includePacksDir = config["include_packs"].as<vector<string>>();
+
+	logger->info("Settings loaded successfully.");
 }
 
 string Settings::getGameDir() { return gameDir; }

@@ -6,18 +6,18 @@
 #include <thread>
 #include <vector>
 
-#include "CL/cl.h"
-#include "yaml-cpp/yaml.h"
+// #include <CL/cl.h>
+// #include <opencv2/core.hpp>
+// #include <opencv2/highgui.hpp>
+// #include <opencv2/imgcodecs.hpp>
+// #include <opencv2/imgproc.hpp>
+// #include <opencv2/opencv.hpp>
 
+#include "file_system.hpp"
+#include "logger.hpp"
 #include "mod_manager.hpp"
 #include "settings.hpp"
 #include "texture_pack_parser.hpp"
-
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/opencv.hpp>
 
 using std::byte;
 
@@ -26,10 +26,12 @@ using std::vector;
 
 namespace filesystem = std::filesystem;
 
-using namespace cv;
+// using namespace cv;
 
-static ModManager modManager;
 static Settings settings;
+static ModManager modManager;
+
+auto logger = Logger::instance();
 
 bool needSanitization(vector<byte> *data, string *sanitizeText) {
 
@@ -46,18 +48,6 @@ bool needSanitization(vector<byte> *data, string *sanitizeText) {
 	return true;
 }
 
-void validate_path(string unsafePath) {
-	if (!filesystem::exists(unsafePath)) {
-		printf("Path does not exist: %s\n", unsafePath.c_str());
-		exit(1);
-	}
-
-	if (!filesystem::is_directory(unsafePath)) {
-		printf("Path is not a directory: %s\n", unsafePath.c_str());
-		exit(1);
-	}
-}
-
 int main() {
 
 	settings.loadSettings();
@@ -66,18 +56,25 @@ int main() {
 	string steamWorkshopDir = settings.steamWorkshopDir();
 	vector<string> includePacks = settings.getIncludePacksDir();
 
-	validate_path(gameDir);
-	validate_path(steamWorkshopDir);
+	bool gameDirExists = FileSystem::validatePath(gameDir);
+
+	if (!gameDirExists) {
+		logger->error("Game directory does not exist.");
+		return 1;
+	}
+
+	bool steamWorkshopDirExists = FileSystem::validatePath(steamWorkshopDir);
+
+	if (!steamWorkshopDirExists) {
+		logger->error("Steam workshop directory does not exist.");
+		return 1;
+	}
 
 	modManager.loadMods(steamWorkshopDir);
 
 	auto mods = modManager.getMods();
 
-	printf("Found %lu mods.\n", mods.size());
-
-	for (const auto &mod : mods) {
-		printf("Mod: %s\n", mod.first.c_str());
-	}
+	logger->info("Total mods count: " + std::to_string(mods.size()));
 
 	if (includePacks.size() == 0) {
 		printf("No texture packs to include.\n");
@@ -90,17 +87,23 @@ int main() {
 	filesystem::path mapsDirectory =
 		filesystem::path(gameDir) / "media" / "maps";
 
-	if (!filesystem::exists(texturePacksDirectory)) {
-		printf("Game texturepacks directory not found.\n");
+	auto mapsDirectoryExists = FileSystem::validatePath(mapsDirectory);
+
+	if (!mapsDirectoryExists) {
+		logger->error("Maps directory does not exist.");
 		return 1;
 	}
 
-	if (!filesystem::exists(mapsDirectory)) {
-		printf("Game maps directory not found.\n");
+	auto texturePacksDirectoryExists =
+		FileSystem::validatePath(texturePacksDirectory);
+
+	if (!texturePacksDirectoryExists) {
+		logger->error("Texture packs directory does not exist.");
 		return 1;
 	}
 
-	vector<filesystem::path> texturePacksPaths;
+	std::shared_ptr<vector<filesystem::path>> texturePacksPaths =
+		std::make_shared<vector<filesystem::path>>();
 
 	for (const auto &texturePackDirEntry :
 		 filesystem::directory_iterator(texturePacksDirectory)) {
@@ -122,7 +125,7 @@ int main() {
 			continue;
 		}
 
-		texturePacksPaths.push_back(texturePackDirEntry.path());
+		texturePacksPaths->push_back(texturePackDirEntry.path());
 	}
 
 	for (const auto &mod : mods) {
@@ -147,18 +150,18 @@ int main() {
 				continue;
 			}
 
-			texturePacksPaths.push_back(texturePackDirEntry.path());
+			texturePacksPaths->push_back(texturePackDirEntry.path());
 		}
 	}
 
 	std::vector<std::shared_ptr<TexturePack>> texturePacks;
 
-	for (const auto &texturePackPath : texturePacksPaths) {
+	for (const auto &texturePackPath : *texturePacksPaths) {
 
 		std::shared_ptr<TexturePackParser> texturePackParser =
 			std::make_shared<TexturePackParser>(texturePackPath.string());
 
-		auto texturePack = texturePackParser->parse();
+		std::shared_ptr<TexturePack> texturePack = texturePackParser->parse();
 
 		if (texturePack == nullptr) {
 			printf("Failed to parse texture pack: %s\n",
@@ -173,28 +176,28 @@ int main() {
 		printf("Texture path: %s\n", texturePack->getPath().c_str());
 		printf("Texture pack: %s\n", texturePack->getName().c_str());
 
-		auto imageBuffer = texturePack->getBuffer();
+		// auto imageBuffer = texturePack->getBuffer();
 
-		std::shared_ptr<vector<uchar>> ucharBuffer =
-			std::make_shared<vector<uchar>>();
+		// std::shared_ptr<vector<uchar>> ucharBuffer =
+		// 	std::make_shared<vector<uchar>>();
 
-		std::transform(imageBuffer->begin(), imageBuffer->end(),
-					   std::back_inserter(*ucharBuffer),
-					   [](byte b) { return static_cast<uchar>(b); });
+		// std::transform(imageBuffer->begin(), imageBuffer->end(),
+		// 			   std::back_inserter(*ucharBuffer),
+		// 			   [](byte b) { return static_cast<uchar>(b); });
 
-		std::shared_ptr<Mat> image =
-			std::make_shared<Mat>(imdecode(*ucharBuffer, IMREAD_UNCHANGED));
+		// std::shared_ptr<Mat> image =
+		// 	std::make_shared<Mat>(imdecode(*ucharBuffer, IMREAD_UNCHANGED));
 
-		printf("Width: %d, Height: %d\n", image->cols, image->rows);
+		// printf("Width: %d, Height: %d\n", image->cols, image->rows);
 
-		std::ofstream outputFile;
-		outputFile.open("test.png", std::ios::binary);
-		if (outputFile.is_open()) {
-			outputFile.write(
-				reinterpret_cast<const char *>(imageBuffer->data()),
-				imageBuffer->size());
-			outputFile.close();
-		}
+		// std::ofstream outputFile;
+		// outputFile.open("test.png", std::ios::binary);
+		// if (outputFile.is_open()) {
+		// 	outputFile.write(
+		// 		reinterpret_cast<const char *>(imageBuffer->data()),
+		// 		imageBuffer->size());
+		// 	outputFile.close();
+		// }
 
 		// for (const auto &texture : texturePack->getTextures()) {
 		// 	auto name = texture->getName();

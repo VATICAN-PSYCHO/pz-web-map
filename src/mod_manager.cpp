@@ -1,12 +1,13 @@
 #include "mod_manager.hpp"
+#include "file_system.hpp"
+#include "logger.hpp"
+#include "settings.hpp"
 
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <thread>
-
-#include "settings.hpp"
 
 using std::string;
 using std::vector;
@@ -28,7 +29,6 @@ void ModManager::loadMods(string path) {
 
 	this->setupDependencies();
 
-	// Remove TEXTURE mods that are not used by any MAP or MIXED mod
 	for (auto it = mods.begin(); it != mods.end();) {
 		auto mod = it->second;
 		if (mod->getType() == ModType::TEXTURE &&
@@ -101,13 +101,15 @@ void ModManager::processMod(string path, std::uint64_t steamId) {
 
 	auto modInfoFile = modDirectory / "mod.info";
 
-	if (!std::filesystem::exists(modInfoFile)) {
+	if (!FileSystem::validatePath(modInfoFile)) {
+
 		return;
 	}
 
-	if (!std::filesystem::is_regular_file(modInfoFile)) {
+	if (!FileSystem::isFile(modInfoFile)) {
 		return;
 	}
+
 	std::ifstream modInfoFileStream(modInfoFile);
 
 	string line, id, name, deps, pack;
@@ -186,17 +188,16 @@ bool ModManager::isNonEmptyExistsingDirectory(string path) {
 
 	auto directory = std::filesystem::path(path);
 
-	auto exists = std::filesystem::exists(directory);
+	auto exists = FileSystem::validatePath(directory);
 	if (!exists)
 		return false;
 
-	auto isDirectory = std::filesystem::is_directory(directory);
+	auto isDirectory = FileSystem::isDirectory(directory);
 
 	if (!isDirectory)
 		return false;
 
-	auto isNonEmpty = std::filesystem::directory_iterator(directory) !=
-					  std::filesystem::directory_iterator();
+	auto isNonEmpty = FileSystem::isNonEmptyDirectory(directory);
 
 	return isNonEmpty;
 }

@@ -14,7 +14,7 @@ using std::vector;
 
 class BinaryShiftReader {
   public:
-	BinaryShiftReader(std::shared_ptr<vector<byte>> data);
+	BinaryShiftReader(std::shared_ptr<vector<byte>> buffer);
 	~BinaryShiftReader();
 
   public:
@@ -28,14 +28,21 @@ class BinaryShiftReader {
 	void readInt32(int32_t *value);
 	void readInt64(int64_t *value);
 
+	void readBytes(byte *value, std::size_t size);
+
 	void readChars(char *value, std::size_t size);
 
-	std::size_t getOffset() { return this->offset; }
+	void copyMemory(byte *dest, std::size_t size);
+
+	std::size_t getOffset();
+	std::size_t getSize();
+	std::byte at(std::size_t index);
+
+	std::shared_ptr<vector<byte>> getBuffer();
 
   private:
-	std::shared_ptr<vector<byte>> data;
+	std::shared_ptr<vector<byte>> buffer;
 	std::size_t offset;
-	void copyMemory(byte *dest, std::size_t size);
 };
 
 #endif
