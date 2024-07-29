@@ -26,7 +26,6 @@ class TexturePack {
 
 	string path;
 	std::vector<std::shared_ptr<TexturePage>> pages;
-	std::shared_ptr<std::vector<std::byte>> pageBuffer;
 };
 
 #endif

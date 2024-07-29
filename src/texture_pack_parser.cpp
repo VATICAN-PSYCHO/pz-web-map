@@ -130,18 +130,18 @@ void TexturePackParser::parsePage(std::shared_ptr<TexturePack> texturePack) {
 		textureSize -= binaryShiftReader->getOffset();
 	}
 
-	if (this->version == TexturePackVersion::V1) {
-		binaryShiftReader->readInt32(nullptr);
-	}
-
 	auto offset = binaryShiftReader->getOffset();
 
 	auto buffer = binaryShiftReader->getBuffer();
 
 	texturePage->start = buffer->begin() + offset;
-	texturePage->end = buffer->begin() + textureSize;
+	texturePage->end = buffer->begin() + offset + textureSize;
 
 	binaryShiftReader->readBytes(nullptr, textureSize);
+
+	if (this->version == TexturePackVersion::V1) {
+		binaryShiftReader->readInt32(nullptr);
+	}
 
 	texturePack->pages.push_back(texturePage);
 }
