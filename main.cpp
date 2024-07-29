@@ -141,81 +141,103 @@ int main() {
 		}
 	}
 
-	std::vector<std::shared_ptr<TexturePack>> texturePacks;
+	std::unique_ptr<vector<std::shared_ptr<TexturePack>>> texturePacks =
+		std::make_unique<vector<std::shared_ptr<TexturePack>>>();
 
 	for (const auto &texturePackPath : *texturePacksPaths) {
 
 		std::shared_ptr<TexturePackParser> texturePackParser =
 			std::make_shared<TexturePackParser>(texturePackPath.string());
 
-		std::shared_ptr<TexturePack> texturePack =
-			texturePackParser->parseTexturePack();
+		auto texturePack = texturePackParser->parseTexturePack();
 
-		if (texturePack == nullptr) {
-			printf("Failed to parse texture pack: %s\n",
-				   texturePackPath.c_str());
-			continue;
-		}
-
-		texturePacks.push_back(texturePack);
+		texturePacks->push_back(texturePack);
 	}
 
-	for (const auto &texturePack : texturePacks) {
+	for (const auto &texturePack : *texturePacks) {
 		printf("Texture path: %s\n", texturePack->getPath().c_str());
-		printf("Texture pack: %s\n", texturePack->getName().c_str());
 
-		// auto imageBuffer = texturePack->getBuffer();
+		auto pages = texturePack->getPages();
 
-		// std::shared_ptr<vector<uchar>> ucharBuffer =
-		// 	std::make_shared<vector<uchar>>();
+		for (const auto &page : pages) {
+			printf("Page: %s\n", page->getName().c_str());
+			auto pageTextures = page->getTextures();
 
-		// std::transform(imageBuffer->begin(), imageBuffer->end(),
-		// 			   std::back_inserter(*ucharBuffer),
-		// 			   [](byte b) { return static_cast<uchar>(b); });
+			for (const auto &texture : pageTextures) {
+				auto name = texture->getName();
 
-		// std::shared_ptr<cv::Mat> image = std::make_shared<cv::Mat>(
-		// 	cv::imdecode(*ucharBuffer, cv::IMREAD_UNCHANGED));
+				auto x = texture->getXCord();
+				auto y = texture->getYCord();
+				auto width = texture->getWidth();
+				auto height = texture->getHeight();
 
-		// printf("Width: %d, Height: %d\n", image->cols, image->rows);
+				auto ox = texture->getXCordOffset();
+				auto oy = texture->getYOffset();
+				auto ow = texture->getWidthOffset();
+				auto oh = texture->getHeightOffset();
+				;
 
-		// for (const auto &texture : texturePack->getTextures()) {
-		// 	auto name = texture->getName();
+				ox -= ow >> 1;
+				oy -= oh;
 
-		// 	auto x = texture->getXCord();
-		// 	auto y = texture->getYCord();
-		// 	auto width = texture->getWidth();
-		// 	auto height = texture->getHeight();
+				printf("Texture: %s\n", name.c_str());
 
-		// 	auto ox = texture->getXCordOffset();
-		// 	auto oy = texture->getYOffset();
-		// 	auto ow = texture->getWidthOffset();
-		// 	auto oh = texture->getHeightOffset();
-		// 	;
-
-		// 	ox -= ow >> 1;
-		// 	oy -= oh;
-
-		// printf("Texture: %s\n", name.c_str());
-
-		// printf("X: %d, Y: %d, Width: %d, Height: %d\n", x, y, width, height);
-
-		// 	std::shared_ptr<cv::Mat> textureImage = std::make_shared<cv::Mat>(
-		// 		image->rowRange(y, y + height).colRange(x, x + width));
-
-		// 	filesystem::path outputDir =
-		// 		filesystem::path(settings.getOutputDir());
-
-		// 	if (outputDir.is_relative()) {
-		// 		outputDir = filesystem::current_path() / outputDir;
-		// 	}
-
-		// 	filesystem::path texturePath = outputDir / texturePack->getName();
-
-		// 	filesystem::create_directories(texturePath);
-
-		// 	imwrite(texturePath / (texture->getName() + ".png"), *textureImage);
+				printf("X: %d, Y: %d, Width: %d, Height: %d\n", x, y, width,
+					   height);
+			}
+		}
 	}
-}
 
-return 0;
+	// std::shared_ptr<vector<uchar>> ucharBuffer =
+	// 	std::make_shared<vector<uchar>>();
+
+	// std::transform(imageBuffer->begin(), imageBuffer->end(),
+	// 			   std::back_inserter(*ucharBuffer),
+	// 			   [](byte b) { return static_cast<uchar>(b); });
+
+	// std::shared_ptr<cv::Mat> image = std::make_shared<cv::Mat>(
+	// 	cv::imdecode(*ucharBuffer, cv::IMREAD_UNCHANGED));
+
+	// printf("Width: %d, Height: %d\n", image->cols, image->rows);
+
+	// for (const auto &texture : texturePack->getTextures()) {
+	// 	auto name = texture->getName();
+
+	// 	auto x = texture->getXCord();
+	// 	auto y = texture->getYCord();
+	// 	auto width = texture->getWidth();
+	// 	auto height = texture->getHeight();
+
+	// 	auto ox = texture->getXCordOffset();
+	// 	auto oy = texture->getYOffset();
+	// 	auto ow = texture->getWidthOffset();
+	// 	auto oh = texture->getHeightOffset();
+	// 	;
+
+	// 	ox -= ow >> 1;
+	// 	oy -= oh;
+
+	// 	printf("Texture: %s\n", name.c_str());
+
+	// 	printf("X: %d, Y: %d, Width: %d, Height: %d\n", x, y, width,
+	// 		   height);
+
+	// 	std::shared_ptr<cv::Mat> textureImage = std::make_shared<cv::Mat>(
+	// 		image->rowRange(y, y + height).colRange(x, x + width));
+
+	// 	filesystem::path outputDir =
+	// 		filesystem::path(settings.getOutputDir());
+
+	// 	if (outputDir.is_relative()) {
+	// 		outputDir = filesystem::current_path() / outputDir;
+	// 	}
+
+	// 	filesystem::path texturePath = outputDir / texturePack->getName();
+
+	// 	filesystem::create_directories(texturePath);
+
+	// 	imwrite(texturePath / (texture->getName() + ".png"), *textureImage);
+	// }
+
+	return 0;
 }

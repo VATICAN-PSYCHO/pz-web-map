@@ -37,47 +37,53 @@ TexturePackParser::TexturePackParser(const std::string &path) {
 
 	textureFile.read((char *)buffer->data(), fileSize);
 	textureFile.close();
+
+	this->version = TexturePackVersion::Unknown;
+
+	this->determineVersion();
 }
 
 TexturePackParser::~TexturePackParser() {}
+
+void TexturePackParser::determineVersion() {
+
+	static std::string optionalFileHeader = "PZPK";
+
+	for (std::size_t i = 0; i < optionalFileHeader.size(); ++i) {
+		if (this->binaryShiftReader->at(i) !=
+			std::byte(optionalFileHeader.at(i))) {
+			version = TexturePackVersion::V1;
+			return;
+		}
+	}
+
+	version = TexturePackVersion::V2;
+}
 
 std::shared_ptr<TexturePack> TexturePackParser::parseTexturePack() {
 
 	std::shared_ptr<TexturePack> texturePack = std::make_shared<TexturePack>();
 
-	texturePack->path = this->path;
-
-	bool sanitizeRequired = this->needSanitization(magicWord);
-
-	if (sanitizeRequired) {
-		binaryShiftReader->readUint64(nullptr);
+	if (this->version == TexturePackVersion::V2) {
+		binaryShiftReader->readInt64(nullptr);
 	}
 
 	uint32_t texturePagesCount = 0;
 	binaryShiftReader->readUint32(&texturePagesCount);
 
 	logger->info("Parsing texture pack: " + this->path);
+	logger->info("Texture pack size: " +
+				 std::to_string(binaryShiftReader->getSize() / (1024 * 1024)) +
+				 " MB");
 	logger->info("Texture pages count: " + std::to_string(texturePagesCount));
 
 	for (std::size_t i = 0; i < texturePagesCount; ++i) {
 		this->parsePage(texturePack);
 	}
 
-	if (sanitizeRequired) {
-		binaryShiftReader->readUint32(nullptr);
+	if (this->version == TexturePackVersion::V2) {
+		binaryShiftReader->readInt32(nullptr);
 	}
-
-	std::shared_ptr<std::vector<std::byte>> imageBuffer =
-		binaryShiftReader->getBuffer();
-
-	size_t size = binaryShiftReader->getSize();
-	size_t offset = binaryShiftReader->getOffset();
-
-	binaryShiftReader->readBytes(imageBuffer->data() + offset, size - offset);
-
-	imageBuffer->erase(imageBuffer->begin(), imageBuffer->begin() + offset);
-
-	texturePack->imageBuffer = imageBuffer;
 
 	return texturePack;
 }
@@ -113,39 +119,36 @@ void TexturePackParser::parsePage(std::shared_ptr<TexturePack> texturePack) {
 		this->parseTexture(texturePage);
 	}
 
-	bool sanitizeRequired = this->needSanitization(magicWord);
-
 	uint32_t textureSize = 0;
-	auto imageBuffer = vector<std::byte>();
 
-	if (!sanitizeRequired) {
+	if (this->version == TexturePackVersion::V2) {
+		binaryShiftReader->readUint32(&textureSize);
+	} else {
 		auto position = binaryShiftReader->findBytesSequencePosition(deadBeef);
 
 		textureSize = position - binaryShiftReader->getBuffer()->begin();
 		textureSize -= binaryShiftReader->getOffset();
-
-	} else {
-		binaryShiftReader->readUint32(&textureSize);
 	}
 
-	imageBuffer.resize(textureSize);
-	binaryShiftReader->readBytes(imageBuffer.data(), textureSize);
-
-	if (!sanitizeRequired) {
-		binaryShiftReader->readUint32(nullptr);
+	if (this->version == TexturePackVersion::V1) {
+		binaryShiftReader->readInt32(nullptr);
 	}
 
-	std::ofstream outputFile("image_buffer.png", std::ios::binary);
-	outputFile.write(reinterpret_cast<const char *>(imageBuffer.data()),
-					 imageBuffer.size());
-	outputFile.close();
+	auto offset = binaryShiftReader->getOffset();
+
+	auto buffer = binaryShiftReader->getBuffer();
+
+	texturePage->start = buffer->begin() + offset;
+	texturePage->end = buffer->begin() + textureSize;
+
+	binaryShiftReader->readBytes(nullptr, textureSize);
 
 	texturePack->pages.push_back(texturePage);
 }
 
 void TexturePackParser::parseTexture(std::shared_ptr<TexturePage> texturePage) {
 
-	std::shared_ptr<Texture> texture = std::make_shared<Texture>(	);
+	std::shared_ptr<Texture> texture = std::make_shared<Texture>();
 
 	uint32_t textureNameSize = 0;
 	binaryShiftReader->readUint32(&textureNameSize);
@@ -170,19 +173,4 @@ void TexturePackParser::parseTexture(std::shared_ptr<TexturePage> texturePage) {
 	logger->info("Texture name: " + texture->name);
 
 	texturePage->addTexture(texture);
-}
-
-bool TexturePackParser::needSanitization(std::string sanitizeText) {
-
-	if (this->binaryShiftReader->getSize() < sanitizeText.size()) {
-		return false;
-	}
-
-	for (std::size_t i = 0; i < sanitizeText.size(); ++i) {
-		if (this->binaryShiftReader->at(i) != std::byte(sanitizeText.at(i))) {
-			return false;
-		}
-	}
-
-	return true;
 }

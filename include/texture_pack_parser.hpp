@@ -8,6 +8,8 @@
 #include "binary_shift_reader.hpp"
 #include "texture_pack.hpp"
 
+enum TexturePackVersion { Unknown, V1, V2 };
+
 class TexturePackParser {
   public:
 	TexturePackParser(const std::string &path);
@@ -19,10 +21,11 @@ class TexturePackParser {
 	void parseTexture(std::shared_ptr<TexturePage> texturePage);
 
   private:
-	bool needSanitization(std::string sanitizeText);
+	void determineVersion();
 
   private:
 	std::string path;
+	TexturePackVersion version;
 	std::shared_ptr<BinaryShiftReader> binaryShiftReader;
 };
 

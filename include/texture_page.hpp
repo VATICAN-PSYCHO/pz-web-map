@@ -27,7 +27,10 @@ class TexturePage {
 	bool alpha;
 
   public:
-	std::vector<std::shared_ptr<std::byte>> page;
+	std::vector<std::byte>::iterator start;
+	std::vector<std::byte>::iterator end;
+
+  private:
 	std::vector<std::shared_ptr<Texture>> textures;
 };
 
