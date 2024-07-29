@@ -1,5 +1,6 @@
 #include "binary_shift_reader.hpp"
 
+#include <algorithm>
 #include <memory>
 #include <stdexcept>
 
@@ -85,4 +86,17 @@ void BinaryShiftReader::copyMemory(byte *dest, std::size_t size) {
 		std::memcpy(dest, this->buffer->data() + this->offset, size);
 
 	this->offset += size;
+}
+
+std::vector<std::byte>::iterator BinaryShiftReader::findBytesSequencePosition(
+	const std::vector<std::byte> &sequence) {
+
+	auto it =
+		std::search(this->buffer->begin() + this->offset, this->buffer->end(),
+					sequence.begin(), sequence.end());
+
+	if (it == this->buffer->end())
+		throw std::runtime_error("Sequence not found");
+
+	return it;
 }

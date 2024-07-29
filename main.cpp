@@ -7,7 +7,7 @@
 #include <vector>
 
 // #include <CL/cl.h>
-// #include <opencv2/core.hpp>
+#include <opencv2/opencv.hpp>
 // #include <opencv2/highgui.hpp>
 // #include <opencv2/imgcodecs.hpp>
 // #include <opencv2/imgproc.hpp>
@@ -26,27 +26,10 @@ using std::vector;
 
 namespace filesystem = std::filesystem;
 
-// using namespace cv;
-
 static Settings settings;
 static ModManager modManager;
 
 auto logger = Logger::instance();
-
-bool needSanitization(vector<byte> *data, string *sanitizeText) {
-
-	if (data->size() < sanitizeText->size()) {
-		return false;
-	}
-
-	for (std::size_t i = 0; i < sanitizeText->size(); ++i) {
-		if (data->at(i) != byte(sanitizeText->at(i))) {
-			return false;
-		}
-	}
-
-	return true;
-}
 
 int main() {
 
@@ -75,6 +58,10 @@ int main() {
 	auto mods = modManager.getMods();
 
 	logger->info("Total mods count: " + std::to_string(mods.size()));
+
+	for (const auto &mod : mods) {
+		logger->info("Mod name: " + mod.second.get()->getName());
+	}
 
 	if (includePacks.size() == 0) {
 		printf("No texture packs to include.\n");
@@ -161,7 +148,8 @@ int main() {
 		std::shared_ptr<TexturePackParser> texturePackParser =
 			std::make_shared<TexturePackParser>(texturePackPath.string());
 
-		std::shared_ptr<TexturePack> texturePack = texturePackParser->parse();
+		std::shared_ptr<TexturePack> texturePack =
+			texturePackParser->parseTexturePack();
 
 		if (texturePack == nullptr) {
 			printf("Failed to parse texture pack: %s\n",
@@ -185,19 +173,10 @@ int main() {
 		// 			   std::back_inserter(*ucharBuffer),
 		// 			   [](byte b) { return static_cast<uchar>(b); });
 
-		// std::shared_ptr<Mat> image =
-		// 	std::make_shared<Mat>(imdecode(*ucharBuffer, IMREAD_UNCHANGED));
+		// std::shared_ptr<cv::Mat> image = std::make_shared<cv::Mat>(
+		// 	cv::imdecode(*ucharBuffer, cv::IMREAD_UNCHANGED));
 
 		// printf("Width: %d, Height: %d\n", image->cols, image->rows);
-
-		// std::ofstream outputFile;
-		// outputFile.open("test.png", std::ios::binary);
-		// if (outputFile.is_open()) {
-		// 	outputFile.write(
-		// 		reinterpret_cast<const char *>(imageBuffer->data()),
-		// 		imageBuffer->size());
-		// 	outputFile.close();
-		// }
 
 		// for (const auto &texture : texturePack->getTextures()) {
 		// 	auto name = texture->getName();
@@ -216,13 +195,12 @@ int main() {
 		// 	ox -= ow >> 1;
 		// 	oy -= oh;
 
-		// 	printf("Texture: %s\n", name.c_str());
+		// printf("Texture: %s\n", name.c_str());
 
-		// 	printf("X: %d, Y: %d, Width: %d, Height: %d\n", x, y, width,
-		// 		   height);
+		// printf("X: %d, Y: %d, Width: %d, Height: %d\n", x, y, width, height);
 
-		// 	std::shared_ptr<Mat> textureImage =
-		// 		std::make_shared<Mat>(*image, Rect(x, y, width, height));
+		// 	std::shared_ptr<cv::Mat> textureImage = std::make_shared<cv::Mat>(
+		// 		image->rowRange(y, y + height).colRange(x, x + width));
 
 		// 	filesystem::path outputDir =
 		// 		filesystem::path(settings.getOutputDir());
@@ -235,10 +213,9 @@ int main() {
 
 		// 	filesystem::create_directories(texturePath);
 
-		// 	// imwrite(texturePath / (texture->getName() + ".png"),
-		// 	// *textureImage);
-		// }
+		// 	imwrite(texturePath / (texture->getName() + ".png"), *textureImage);
 	}
+}
 
-	return 0;
+return 0;
 }

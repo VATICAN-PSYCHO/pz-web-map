@@ -13,8 +13,12 @@ class TexturePackParser {
 	TexturePackParser(const std::string &path);
 	~TexturePackParser();
 
-	std::shared_ptr<TexturePack> parse();
+	std::shared_ptr<TexturePack> parseTexturePack();
 
+	void parsePage(std::shared_ptr<TexturePack> texturePack);
+	void parseTexture(std::shared_ptr<TexturePage> texturePage);
+
+  private:
 	bool needSanitization(std::string sanitizeText);
 
   private:

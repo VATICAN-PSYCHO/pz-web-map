@@ -9,7 +9,6 @@
 #include <vector>
 
 using std::byte;
-using std::deque;
 using std::vector;
 
 class BinaryShiftReader {
@@ -34,6 +33,10 @@ class BinaryShiftReader {
 
 	void copyMemory(byte *dest, std::size_t size);
 
+	std::vector<std::byte>::iterator
+	findBytesSequencePosition(const vector<byte> &sequence);
+
+  public:
 	std::size_t getOffset();
 	std::size_t getSize();
 	std::byte at(std::size_t index);

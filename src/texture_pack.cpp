@@ -8,7 +8,11 @@
 
 using std::string;
 
-TexturePack::TexturePack() {}
+TexturePack::TexturePack() {
+	this->name = "";
+	this->path = "";
+	this->pages = std::vector<std::shared_ptr<TexturePage>>();
+}
 
 TexturePack::~TexturePack() {}
 
@@ -20,24 +24,28 @@ void TexturePack::setPath(string path) { this->path = path; }
 
 string TexturePack::getPath() { return this->path; }
 
-void TexturePack::setSize(uint32_t size) { this->size = size; }
+// void TexturePack::addTexture(std::shared_ptr<Texture> texture) {
+// 	this->textures.push_back(texture);
+// }
 
-uint32_t TexturePack::getSize() { return this->size; }
+// std::shared_ptr<Texture> TexturePack::getTexture(uint32_t index) {
+// 	return this->textures[index];
+// }
 
-void TexturePack::setAlpha(bool alpha) { this->alpha = alpha; }
+// std::vector<std::shared_ptr<Texture>> TexturePack::getTextures() {
+// 	return this->textures;
+// }
 
-bool TexturePack::getAlpha() { return this->alpha; }
-
-void TexturePack::addTexture(std::shared_ptr<Texture> texture) {
-	this->textures.push_back(texture);
+void TexturePack::addPage(std::shared_ptr<TexturePage> page) {
+	this->pages.push_back(page);
 }
 
-std::shared_ptr<Texture> TexturePack::getTexture(uint32_t index) {
-	return this->textures[index];
+std::shared_ptr<TexturePage> TexturePack::getPage(uint32_t index) {
+	return this->pages[index];
 }
 
-std::vector<std::shared_ptr<Texture>> TexturePack::getTextures() {
-	return this->textures;
+std::vector<std::shared_ptr<TexturePage>> TexturePack::getPages() {
+	return this->pages;
 }
 
 void TexturePack::setBuffer(std::shared_ptr<std::vector<std::byte>> buffer) {
