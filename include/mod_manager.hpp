@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "logger.hpp"
 #include "mod.hpp"
 #include "settings.hpp"
 
@@ -35,6 +36,8 @@ class ModManager {
 	bool isMapMod(string path);
 	bool isTextureMod(string path);
 	bool isNonEmptyExistsingDirectory(string path);
+
+	Logger *logger;
 };
 
 #endif

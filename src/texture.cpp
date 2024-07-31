@@ -3,46 +3,53 @@
 Texture::Texture() {}
 Texture::~Texture() {}
 
-void Texture::setName(string name) { this->name = name; }
+void Texture::setName(std::string name) { this->name = name; }
 
-string Texture::getName() { return this->name; }
+std::string Texture::getName() { return this->name; }
 
-void Texture::setXCord(int32_t xCord) { this->xCord = xCord; }
+void Texture::setXCord(std::int32_t xCord) { this->xCord = xCord; }
 
-int32_t Texture::getXCord() { return this->xCord; }
+std::int32_t Texture::getXCord() { return this->xCord; }
 
-void Texture::setYCord(int32_t yCord) { this->yCord = yCord; }
+void Texture::setYCord(std::int32_t yCord) { this->yCord = yCord; }
 
-int32_t Texture::getYCord() { return this->yCord; }
+std::int32_t Texture::getYCord() { return this->yCord; }
 
-void Texture::setWidth(int32_t width) { this->width = width; }
+void Texture::setWidth(std::int32_t width) { this->width = width; }
 
-int32_t Texture::getWidth() { return this->width; }
+std::int32_t Texture::getWidth() { return this->width; }
 
-void Texture::setHeight(int32_t height) { this->height = height; }
+void Texture::setHeight(std::int32_t height) { this->height = height; }
 
-int32_t Texture::getHeight() { return this->height; }
+std::int32_t Texture::getHeight() { return this->height; }
 
-void Texture::setXCordOffset(int32_t xCordOffset) {
+void Texture::setXCordOffset(std::int32_t xCordOffset) {
 	this->xCordOffset = xCordOffset;
 }
 
-int32_t Texture::getXCordOffset() { return this->xCordOffset; }
+std::int32_t Texture::getXCordOffset() { return this->xCordOffset; }
 
-void Texture::setYOffset(int32_t yCordOffset) {
+void Texture::setYOffset(std::int32_t yCordOffset) {
 	this->yCordOffset = yCordOffset;
 }
 
-int32_t Texture::getYOffset() { return this->yCordOffset; }
+std::int32_t Texture::getYCordOffset() { return this->yCordOffset; }
 
-void Texture::setWidthOffset(int32_t widthOffset) {
+void Texture::setWidthOffset(std::int32_t widthOffset) {
 	this->widthOffset = widthOffset;
 }
 
-int32_t Texture::getWidthOffset() { return this->widthOffset; }
+std::int32_t Texture::getWidthOffset() { return this->widthOffset; }
 
-void Texture::setHeightOffset(int32_t heightOffset) {
+void Texture::setHeightOffset(std::int32_t heightOffset) {
 	this->heightOffset = heightOffset;
 }
 
-int32_t Texture::getHeightOffset() { return this->heightOffset; }
+std::int32_t Texture::getHeightOffset() { return this->heightOffset; }
+
+void Texture::render(std::shared_ptr<cv::Mat> image) {
+
+	cv::Rect roi(this->xCord, this->yCord, this->width, this->height);
+
+	cv::Mat texture = (*image)(roi);
+}

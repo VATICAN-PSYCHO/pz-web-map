@@ -5,41 +5,42 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
+#include "logger.hpp"
+
 using std::string;
 using std::vector;
 
 struct Execution {
 	bool parallel;
-	uint8_t threads;
+	uint32_t maxThreads;
+};
+
+struct ModConfig {
+	bool enabled;
+	std::vector<std::string> includeMods;
 };
 
 class Settings {
-  public:
+  private:
 	Settings();
 	~Settings();
-	static Settings *getInstance() {
-		if (instance == nullptr) {
-			instance = new Settings();
-		}
-		return instance;
-	}
+
+  public:
+	static Settings *getInstance();
 
 	void loadSettings();
-	string getGameDir();
-	string steamWorkshopDir();
-	string getOutputDir();
-	vector<string> getIncludePacksDir();
-
-	bool isParallel() { return execution.parallel; }
-	uint8_t getThreads() { return execution.threads; }
 
   private:
 	static Settings *instance;
+	Logger *logger;
+
+  public:
 	string gameDir;
 	string workshopDir;
 	string outputDir;
 	vector<string> includePacksDir;
 	Execution execution;
+	ModConfig mods;
 };
 
 #endif

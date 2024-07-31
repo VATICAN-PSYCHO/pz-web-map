@@ -12,7 +12,7 @@
 
 namespace filesystem = std::filesystem;
 
-static auto logger = Logger::instance();
+static auto logger = Logger::getInstance();
 static std::string magicWord = "PZPK";
 static std::vector<std::byte> deadBeef = {std::byte(0xEF), std::byte(0xBE),
 										  std::byte(0xAD), std::byte(0xDE)};

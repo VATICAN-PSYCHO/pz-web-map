@@ -8,10 +8,6 @@
 
 // #include <CL/cl.h>
 #include <opencv2/opencv.hpp>
-// #include <opencv2/highgui.hpp>
-// #include <opencv2/imgcodecs.hpp>
-// #include <opencv2/imgproc.hpp>
-// #include <opencv2/opencv.hpp>
 
 #include "file_system.hpp"
 #include "logger.hpp"
@@ -26,18 +22,18 @@ using std::vector;
 
 namespace filesystem = std::filesystem;
 
-static Settings settings;
 static ModManager modManager;
-
-auto logger = Logger::instance();
 
 int main() {
 
-	settings.loadSettings();
+	auto logger = Logger::getInstance();
+	auto settings = Settings::getInstance();
 
-	string gameDir = settings.getGameDir();
-	string steamWorkshopDir = settings.steamWorkshopDir();
-	vector<string> includePacks = settings.getIncludePacksDir();
+	settings->loadSettings();
+
+	string gameDir = settings->gameDir;
+	string steamWorkshopDir = settings->workshopDir;
+	vector<string> includePacks = settings->includePacksDir;
 
 	bool gameDirExists = FileSystem::validatePath(gameDir);
 
@@ -158,7 +154,7 @@ int main() {
 		texturePacks->push_back(texturePack);
 	}
 
-	filesystem::path outputDir = settings.getOutputDir();
+	filesystem::path outputDir = settings->outputDir;
 
 	filesystem::create_directories(outputDir);
 
@@ -193,25 +189,16 @@ int main() {
 				auto height = texture->getHeight();
 
 				auto ox = texture->getXCordOffset();
-				auto oy = texture->getYOffset();
+				auto oy = texture->getYCordOffset();
 				auto ow = texture->getWidthOffset();
 				auto oh = texture->getHeightOffset();
-				;
-
-				ox -= ow >> 1;
-				oy -= oh;
 
 				printf("Texture: %s\n", name.c_str());
 
 				printf("X: %d, Y: %d, Width: %d, Height: %d\n", x, y, width,
 					   height);
 
-				std::shared_ptr<cv::Mat> textureImage =
-					std::make_shared<cv::Mat>(
-						(*image)(cv::Rect(x, y, width, height)));
-
-				imwrite(pageDirectory / (texture->getName() + ".png"),
-						*textureImage);
+				texture->render(image);
 			}
 		}
 	}

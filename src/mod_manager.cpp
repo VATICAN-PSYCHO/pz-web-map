@@ -12,19 +12,27 @@
 using std::string;
 using std::vector;
 
-ModManager::ModManager() {}
+ModManager::ModManager() {
+	this->logger = Logger::getInstance();
+	this->logger->info("ModManager instance created.");
+}
 
 ModManager::~ModManager() {}
 
 void ModManager::addMod(string id, std::shared_ptr<Mod> mod) { mods[id] = mod; }
 
 void ModManager::loadMods(string path) {
+	if (!settings->mods.enabled) {
+		this->logger->info("Mods are disabled.");
+		return;
+	}
+
 	auto steamWorkshopDir = std::filesystem::path(path);
 
-	if (settings->isParallel()) {
-		this->loadModsParallel(steamWorkshopDir);
+	if (settings->execution.parallel) {
+		this->loadModsParallel(settings->workshopDir);
 	} else {
-		this->loadModsSequential(steamWorkshopDir);
+		this->loadModsSequential(settings->workshopDir);
 	}
 
 	this->setupDependencies();

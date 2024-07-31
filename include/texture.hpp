@@ -2,51 +2,56 @@
 #define TEXTURE_HPP
 
 #include <cstdint>
+#include <memory>
+#include <opencv2/opencv.hpp>
 #include <string>
-
-using std::string;
 
 class Texture {
   public:
 	Texture();
 	~Texture();
 
-	void setName(string name);
-	string getName();
+	void setName(std::string name);
+	std::string getName();
 
-	void setXCord(int32_t xCord);
-	int32_t getXCord();
+	void setXCord(std::int32_t xCord);
+	std::int32_t getXCord();
 
-	void setYCord(int32_t yCord);
-	int32_t getYCord();
+	void setYCord(std::int32_t yCord);
+	std::int32_t getYCord();
 
-	void setWidth(int32_t width);
-	int32_t getWidth();
+	void setWidth(std::int32_t width);
+	std::int32_t getWidth();
 
-	void setHeight(int32_t height);
-	int32_t getHeight();
+	void setHeight(std::int32_t height);
+	std::int32_t getHeight();
 
-	void setXCordOffset(int32_t xCordOffset);
-	int32_t getXCordOffset();
+	void setXCordOffset(std::int32_t xCordOffset);
+	std::int32_t getXCordOffset();
 
-	void setYOffset(int32_t yCordOffset);
-	int32_t getYOffset();
+	void setYOffset(std::int32_t yCordOffset);
+	std::int32_t getYCordOffset();
 
-	void setWidthOffset(int32_t widthOffset);
-	int32_t getWidthOffset();
+	void setWidthOffset(std::int32_t widthOffset);
+	std::int32_t getWidthOffset();
 
-	void setHeightOffset(int32_t heightOffset);
-	int32_t getHeightOffset();
+	void setHeightOffset(std::int32_t heightOffset);
+	std::int32_t getHeightOffset();
 
-	string name;
-	int32_t xCord;
-	int32_t yCord;
-	int32_t width;
-	int32_t height;
-	int32_t xCordOffset;
-	int32_t yCordOffset;
-	int32_t widthOffset;
-	int32_t heightOffset;
+	void render(std::shared_ptr<cv::Mat>);
+
+	std::string name;
+	std::int32_t xCord;
+	std::int32_t yCord;
+	std::int32_t width;
+	std::int32_t height;
+	std::int32_t xCordOffset;
+	std::int32_t yCordOffset;
+	std::int32_t widthOffset;
+	std::int32_t heightOffset;
+
+  private:
+	std::shared_ptr<cv::Mat> image;
 };
 
 #endif

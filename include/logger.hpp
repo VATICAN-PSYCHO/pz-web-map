@@ -5,22 +5,19 @@
 #include <thread>
 
 class Logger {
-  public:
-	Logger(const Logger &) = delete;
-	Logger &operator=(const Logger &) = delete;
+  private:
+	Logger();
+	~Logger();
 
-	static Logger *instance() {
-		static Logger instance;
-		return &instance;
-	}
+  public:
+	static Logger *getInstance();
 
 	void info(const std::string &message);
 	void warn(const std::string &message);
 	void error(const std::string &message);
 
   private:
-	Logger();
-	~Logger();
+	static Logger *instance;
 };
 
 #endif
