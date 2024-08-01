@@ -19,49 +19,71 @@ void Settings::loadSettings() {
 
 	YAML::Node config = YAML::LoadFile("config.yaml");
 
+	this->logger = Logger::getInstance();
+
+	if (!config) {
+		this->logger->error("Config file not found.");
+		exit(1);
+	}
+
+	auto logLevel = config["log_level"];
+	this->logger->setLevel(logLevel.as<string>());
+
 	if (!config["game_dir"]) {
-		this->logger->error("Game directory not found in config file.");
+		this->logger->error("Settings `game_dir` not found in config file.");
 		exit(1);
 	}
 
 	if (!config["workshop_dir"]) {
-		this->logger->error("Workshop directory not found in config file.");
+		this->logger->error(
+			"Settings `workshop_dir` not found in config file.");
 		exit(1);
 	}
 
 	if (!config["output_dir"]) {
-		this->logger->error("Output directory not found in config file.");
+		this->logger->error("Settings `output_dir` not found in config file.");
 		exit(1);
 	}
 
 	if (!config["include_packs"]) {
-		this->logger->error("Include packs not found in config file.");
+		this->logger->error(
+			"Settings `include_packs` not found in config file.");
 		exit(1);
 	}
 
 	if (!config["include_packs"].IsSequence()) {
-		this->logger->error("Include packs must be a list.");
+		this->logger->error("Settings `include_packs` is not a sequence.");
 		exit(1);
 	}
 
 	if (!config["execution"]) {
-		this->logger->warn("Execution settings not found in config file.");
+		this->logger->error("Settings `execution` not found in config file.");
+		exit(1);
 	}
 	if (!config["execution"]["parallel"]) {
-		this->logger->warn("Parallel execution not found in config file.");
+		this->logger->error(
+			"Settings `execution`.`parallel` not found in config file.");
+		exit(1);
 	}
-	if (!config["execution"]["max_threads"]) {
-		this->logger->warn("Max threads not found in config file.");
+	if (!config["execution"]["threads"]) {
+		this->logger->error(
+			"Settings `execution`.`threads` not found in config file.");
+		exit(1);
 	}
 
 	if (!config["mods"]) {
-		this->logger->warn("Mods settings not found in config file.");
+		this->logger->error("Settings `mods` not found in config file.");
+		exit(1);
 	}
 	if (!config["mods"]["enabled"]) {
-		this->logger->warn("Mods enabled not found in config file.");
+		this->logger->error(
+			"Settings `mods`.`enabled` not found in config file.");
+		exit(1);
 	}
 	if (!config["mods"]["include_mods"]) {
-		this->logger->warn("Include mods not found in config file.");
+		this->logger->error(
+			"Settings `mods`.`include_mods` not found in config file.");
+		exit(1);
 	}
 
 	gameDir = config["game_dir"].as<string>();
@@ -70,12 +92,7 @@ void Settings::loadSettings() {
 	includePacksDir = config["include_packs"].as<vector<string>>();
 
 	execution.parallel = config["execution"]["parallel"].as<bool>();
-
-	uint32_t realThreads = std::thread::hardware_concurrency();
-	uint32_t configThreads = config["execution"]["max_threads"].as<uint32_t>();
-
-	execution.maxThreads = std::clamp(configThreads, 1u, realThreads);
-
+	execution.threads = config["execution"]["threads"].as<uint32_t>();
 	mods.enabled = config["mods"]["enabled"].as<bool>();
 	mods.includeMods = config["mods"]["include_mods"].as<vector<string>>();
 

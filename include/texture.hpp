@@ -38,7 +38,7 @@ class Texture {
 	void setHeightOffset(std::int32_t heightOffset);
 	std::int32_t getHeightOffset();
 
-	void render(std::shared_ptr<cv::Mat>);
+	std::shared_ptr<cv::Mat> render(std::shared_ptr<cv::Mat>);
 
 	std::string name;
 	std::int32_t xCord;

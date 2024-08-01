@@ -2,6 +2,7 @@
 #include "file_system.hpp"
 #include "logger.hpp"
 #include "settings.hpp"
+#include "thread_pool.hpp"
 
 #include <cstdint>
 #include <filesystem>
@@ -12,9 +13,10 @@
 using std::string;
 using std::vector;
 
-ModManager::ModManager() {
+ModManager::ModManager(std::shared_ptr<ThreadPool> threadPool) {
 	this->logger = Logger::getInstance();
 	this->logger->info("ModManager instance created.");
+	this->threadPool = threadPool;
 }
 
 ModManager::~ModManager() {}
@@ -29,11 +31,20 @@ void ModManager::loadMods(string path) {
 
 	auto steamWorkshopDir = std::filesystem::path(path);
 
-	if (settings->execution.parallel) {
-		this->loadModsParallel(settings->workshopDir);
-	} else {
-		this->loadModsSequential(settings->workshopDir);
+	std::vector<std::filesystem::path> workshopItems;
+
+	for (const auto &workshopItem :
+		 std::filesystem::directory_iterator(steamWorkshopDir)) {
+		workshopItems.push_back(workshopItem.path());
 	}
+
+	for (const auto &workshopItem : workshopItems) {
+		this->threadPool->enqueue([this, workshopItem] {
+			this->processSteamWorkshopItem(workshopItem);
+		});
+	}
+
+	this->threadPool->wait();
 
 	this->setupDependencies();
 
@@ -45,34 +56,6 @@ void ModManager::loadMods(string path) {
 		} else {
 			++it;
 		}
-	}
-}
-
-void ModManager::loadModsParallel(std::filesystem::path path) {
-
-	vector<std::thread> workers;
-
-	for (const auto &workshopItem : std::filesystem::directory_iterator(path)) {
-		if (!workshopItem.is_directory()) {
-			continue;
-		}
-
-		workers.push_back(std::thread(&ModManager::processSteamWorkshopItem,
-									  this, workshopItem.path()));
-	}
-
-	for (auto &worker : workers) {
-		worker.join();
-	}
-}
-
-void ModManager::loadModsSequential(std::filesystem::path path) {
-	for (const auto &workshopItem : std::filesystem::directory_iterator(path)) {
-		if (!workshopItem.is_directory()) {
-			continue;
-		}
-
-		this->processSteamWorkshopItem(workshopItem.path());
 	}
 }
 

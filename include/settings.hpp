@@ -12,7 +12,7 @@ using std::vector;
 
 struct Execution {
 	bool parallel;
-	uint32_t maxThreads;
+	uint32_t threads;
 };
 
 struct ModConfig {

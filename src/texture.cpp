@@ -47,9 +47,11 @@ void Texture::setHeightOffset(std::int32_t heightOffset) {
 
 std::int32_t Texture::getHeightOffset() { return this->heightOffset; }
 
-void Texture::render(std::shared_ptr<cv::Mat> image) {
+std::shared_ptr<cv::Mat> Texture::render(std::shared_ptr<cv::Mat> image) {
 
 	cv::Rect roi(this->xCord, this->yCord, this->width, this->height);
 
 	cv::Mat texture = (*image)(roi);
+
+	return std::make_shared<cv::Mat>(texture);
 }

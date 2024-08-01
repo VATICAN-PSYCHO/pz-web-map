@@ -10,12 +10,13 @@
 #include "logger.hpp"
 #include "mod.hpp"
 #include "settings.hpp"
+#include "thread_pool.hpp"
 
 using std::string;
 
 class ModManager {
   public:
-	ModManager();
+	ModManager(std::shared_ptr<ThreadPool> threadPool);
 	~ModManager();
 
 	void loadMods(string path);
@@ -38,6 +39,7 @@ class ModManager {
 	bool isNonEmptyExistsingDirectory(string path);
 
 	Logger *logger;
+	std::shared_ptr<ThreadPool> threadPool;
 };
 
 #endif

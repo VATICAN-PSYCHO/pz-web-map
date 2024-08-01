@@ -12,6 +12,8 @@ class Logger {
   public:
 	static Logger *getInstance();
 
+	void setLevel(const std::string &level);
+
 	void info(const std::string &message);
 	void warn(const std::string &message);
 	void error(const std::string &message);

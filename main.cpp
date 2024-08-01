@@ -14,6 +14,8 @@
 #include "mod_manager.hpp"
 #include "settings.hpp"
 #include "texture_pack_parser.hpp"
+#include "texture_page.hpp"
+#include "thread_pool.hpp"
 
 using std::byte;
 
@@ -21,8 +23,6 @@ using std::string;
 using std::vector;
 
 namespace filesystem = std::filesystem;
-
-static ModManager modManager;
 
 int main() {
 
@@ -34,6 +34,11 @@ int main() {
 	string gameDir = settings->gameDir;
 	string steamWorkshopDir = settings->workshopDir;
 	vector<string> includePacks = settings->includePacksDir;
+
+	std::shared_ptr<ThreadPool> threadPool =
+		std::make_shared<ThreadPool>(settings->execution.threads);
+
+	ModManager modManager(threadPool);
 
 	bool gameDirExists = FileSystem::validatePath(gameDir);
 
@@ -60,7 +65,7 @@ int main() {
 	}
 
 	if (includePacks.size() == 0) {
-		printf("No texture packs to include.\n");
+		logger->error("No texture packs to include.");
 		return 1;
 	}
 
@@ -159,12 +164,12 @@ int main() {
 	filesystem::create_directories(outputDir);
 
 	for (const auto &texturePack : *texturePacks) {
-		printf("Texture path: %s\n", texturePack->getPath().c_str());
+		logger->info("Texture pack: " + texturePack->getPath());
 
 		auto pages = texturePack->getPages();
 
 		for (const auto &page : pages) {
-			printf("Page: %s\n", page->getName().c_str());
+			logger->info("Page: " + page->getName());
 			auto pageTextures = page->getTextures();
 
 			std::shared_ptr<vector<uchar>> ucharBuffer =
@@ -181,25 +186,39 @@ int main() {
 			filesystem::create_directories(pageDirectory);
 
 			for (const auto &texture : pageTextures) {
-				auto name = texture->getName();
+				threadPool->enqueue([texture, image, pageDirectory, logger]() {
+					auto name = texture->getName();
 
-				auto x = texture->getXCord();
-				auto y = texture->getYCord();
-				auto width = texture->getWidth();
-				auto height = texture->getHeight();
+					auto x = texture->getXCord();
+					auto y = texture->getYCord();
+					auto width = texture->getWidth();
+					auto height = texture->getHeight();
 
-				auto ox = texture->getXCordOffset();
-				auto oy = texture->getYCordOffset();
-				auto ow = texture->getWidthOffset();
-				auto oh = texture->getHeightOffset();
+					// auto ox = texture->getXCordOffset();
+					// auto oy = texture->getYCordOffset();
+					// auto ow = texture->getWidthOffset();
+					// auto oh = texture->getHeightOffset();
 
-				printf("Texture: %s\n", name.c_str());
+					logger->info("Texture: " + name);
+					logger->info("X: " + std::to_string(x) +
+								 ", Y: " + std::to_string(y) +
+								 ", Width: " + std::to_string(width) +
+								 ", Height: " + std::to_string(height));
 
-				printf("X: %d, Y: %d, Width: %d, Height: %d\n", x, y, width,
-					   height);
+					auto textureImage = texture->render(image);
 
-				texture->render(image);
+					filesystem::path texturePath = pageDirectory / name;
+
+					try {
+						cv::imwrite(texturePath.string() + ".png",
+									*textureImage);
+					} catch (const cv::Exception &e) {
+						logger->error(e.what());
+					}
+				});
 			}
+
+			threadPool->wait();
 		}
 	}
 
