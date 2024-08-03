@@ -7,6 +7,7 @@
 
 #include "binary_shift_reader.hpp"
 #include "texture_pack.hpp"
+#include "thread_pool.hpp"
 
 enum TexturePackVersion { Unknown, V1, V2 };
 
@@ -27,6 +28,7 @@ class TexturePackParser {
 	std::string path;
 	TexturePackVersion version;
 	std::shared_ptr<BinaryShiftReader> binaryShiftReader;
+	std::shared_ptr<ThreadPool> threadPool;
 };
 
 #endif

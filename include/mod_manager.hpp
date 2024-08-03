@@ -16,7 +16,7 @@ using std::string;
 
 class ModManager {
   public:
-	ModManager(std::shared_ptr<ThreadPool> threadPool);
+	ModManager();
 	~ModManager();
 
 	void loadMods(string path);
@@ -39,7 +39,6 @@ class ModManager {
 	bool isNonEmptyExistsingDirectory(string path);
 
 	Logger *logger;
-	std::shared_ptr<ThreadPool> threadPool;
 };
 
 #endif

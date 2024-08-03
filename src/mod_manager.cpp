@@ -13,10 +13,9 @@
 using std::string;
 using std::vector;
 
-ModManager::ModManager(std::shared_ptr<ThreadPool> threadPool) {
+ModManager::ModManager() {
 	this->logger = Logger::getInstance();
 	this->logger->info("ModManager instance created.");
-	this->threadPool = threadPool;
 }
 
 ModManager::~ModManager() {}
@@ -39,12 +38,8 @@ void ModManager::loadMods(string path) {
 	}
 
 	for (const auto &workshopItem : workshopItems) {
-		this->threadPool->enqueue([this, workshopItem] {
-			this->processSteamWorkshopItem(workshopItem);
-		});
+		this->processSteamWorkshopItem(workshopItem);
 	}
-
-	this->threadPool->wait();
 
 	this->setupDependencies();
 

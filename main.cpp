@@ -38,7 +38,7 @@ int main() {
 	std::shared_ptr<ThreadPool> threadPool =
 		std::make_shared<ThreadPool>(settings->execution.threads);
 
-	ModManager modManager(threadPool);
+	ModManager modManager;
 
 	bool gameDirExists = FileSystem::validatePath(gameDir);
 
@@ -148,16 +148,20 @@ int main() {
 	std::vector<std::shared_ptr<TexturePackParser>> texturePackParsers;
 
 	for (const auto &texturePackPath : *texturePacksPaths) {
+		threadPool->enqueue([texturePackPath, &texturePacks,
+							 &texturePackParsers, logger]() {
+			auto texturePackParser =
+				std::make_shared<TexturePackParser>(texturePackPath.string());
 
-		std::shared_ptr<TexturePackParser> texturePackParser =
-			std::make_shared<TexturePackParser>(texturePackPath.string());
+			texturePackParsers.push_back(texturePackParser);
 
-		texturePackParsers.push_back(texturePackParser);
+			auto texturePack = texturePackParser->parseTexturePack();
 
-		auto texturePack = texturePackParser->parseTexturePack();
-
-		texturePacks->push_back(texturePack);
+			texturePacks->push_back(texturePack);
+		});
 	}
+
+	threadPool->wait();
 
 	filesystem::path outputDir = settings->outputDir;
 
@@ -209,12 +213,12 @@ int main() {
 
 					filesystem::path texturePath = pageDirectory / name;
 
-					try {
-						cv::imwrite(texturePath.string() + ".png",
-									*textureImage);
-					} catch (const cv::Exception &e) {
-						logger->error(e.what());
-					}
+					// try {
+					// 	cv::imwrite(texturePath.string() + ".png",
+					// 				*textureImage);
+					// } catch (const cv::Exception &e) {
+					// 	logger->error(e.what());
+					// }
 				});
 			}
 
