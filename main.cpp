@@ -13,6 +13,7 @@
 #include "logger.hpp"
 #include "mod_manager.hpp"
 #include "settings.hpp"
+#include "texture.hpp"
 #include "texture_pack_parser.hpp"
 #include "texture_page.hpp"
 #include "thread_pool.hpp"
@@ -148,24 +149,21 @@ int main() {
 	std::vector<std::shared_ptr<TexturePackParser>> texturePackParsers;
 
 	for (const auto &texturePackPath : *texturePacksPaths) {
-		threadPool->enqueue([texturePackPath, &texturePacks,
-							 &texturePackParsers, logger]() {
-			auto texturePackParser =
-				std::make_shared<TexturePackParser>(texturePackPath.string());
+		auto texturePackParser =
+			std::make_shared<TexturePackParser>(texturePackPath.string());
 
-			texturePackParsers.push_back(texturePackParser);
+		texturePackParsers.push_back(texturePackParser);
 
-			auto texturePack = texturePackParser->parseTexturePack();
+		auto texturePack = texturePackParser->parseTexturePack();
 
-			texturePacks->push_back(texturePack);
-		});
+		texturePacks->push_back(texturePack);
 	}
-
-	threadPool->wait();
 
 	filesystem::path outputDir = settings->outputDir;
 
 	filesystem::create_directories(outputDir);
+
+	std::unordered_map<string, std::shared_ptr<Texture>> textures;
 
 	for (const auto &texturePack : *texturePacks) {
 		logger->info("Texture pack: " + texturePack->getPath());
@@ -190,39 +188,36 @@ int main() {
 			filesystem::create_directories(pageDirectory);
 
 			for (const auto &texture : pageTextures) {
-				threadPool->enqueue([texture, image, pageDirectory, logger]() {
-					auto name = texture->getName();
+				auto name = texture->getName();
 
-					auto x = texture->getXCord();
-					auto y = texture->getYCord();
-					auto width = texture->getWidth();
-					auto height = texture->getHeight();
+				auto x = texture->getXCord();
+				auto y = texture->getYCord();
+				auto width = texture->getWidth();
+				auto height = texture->getHeight();
 
-					// auto ox = texture->getXCordOffset();
-					// auto oy = texture->getYCordOffset();
-					// auto ow = texture->getWidthOffset();
-					// auto oh = texture->getHeightOffset();
+				// auto ox = texture->getXCordOffset();
+				// auto oy = texture->getYCordOffset();
+				// auto ow = texture->getWidthOffset();
+				// auto oh = texture->getHeightOffset();
 
-					logger->info("Texture: " + name);
-					logger->info("X: " + std::to_string(x) +
-								 ", Y: " + std::to_string(y) +
-								 ", Width: " + std::to_string(width) +
-								 ", Height: " + std::to_string(height));
+				logger->info("Texture: " + name);
+				logger->info("X: " + std::to_string(x) +
+							 ", Y: " + std::to_string(y) +
+							 ", Width: " + std::to_string(width) +
+							 ", Height: " + std::to_string(height));
 
-					auto textureImage = texture->render(image);
+				auto textureImage = texture->render(image);
 
-					filesystem::path texturePath = pageDirectory / name;
+				filesystem::path texturePath = pageDirectory / name;
 
-					// try {
-					// 	cv::imwrite(texturePath.string() + ".png",
-					// 				*textureImage);
-					// } catch (const cv::Exception &e) {
-					// 	logger->error(e.what());
-					// }
-				});
+				try {
+					cv::imwrite(texturePath.string() + ".png", *textureImage);
+				} catch (const cv::Exception &e) {
+					logger->error(e.what());
+				}
+
+				textures.insert({name, texture});
 			}
-
-			threadPool->wait();
 		}
 	}
 
