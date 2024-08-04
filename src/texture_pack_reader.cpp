@@ -143,6 +143,22 @@ void TexturePackReader::readPage(std::shared_ptr<TexturePack> texturePack) {
 		binaryShiftReader->readInt32(nullptr);
 	}
 
+	std::shared_ptr<vector<uchar>> ucharBuffer =
+		std::make_shared<vector<uchar>>();
+
+	std::transform(texturePage->start, texturePage->end,
+				   std::back_inserter(*ucharBuffer),
+				   [](byte b) { return static_cast<uchar>(b); });
+
+	std::shared_ptr<cv::Mat> image = std::make_shared<cv::Mat>(
+		cv::imdecode(*ucharBuffer, cv::IMREAD_UNCHANGED));
+
+	texturePage->image = image;
+
+	for (const auto &texture : texturePage->getTextures()) {
+		texture->render(image);
+	}
+
 	texturePack->pages.push_back(texturePage);
 }
 

@@ -29,6 +29,7 @@ class TexturePage {
   public:
 	std::vector<std::byte>::iterator start;
 	std::vector<std::byte>::iterator end;
+	std::shared_ptr<cv::Mat> image;
 
   private:
 	std::vector<std::shared_ptr<Texture>> textures;

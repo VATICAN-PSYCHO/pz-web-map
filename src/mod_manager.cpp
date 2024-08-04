@@ -13,7 +13,9 @@
 using std::string;
 using std::vector;
 
-ModManager::ModManager() {
+ModManager::ModManager(std::string path, TextureLibrary *textureLibrary) {
+	this->path = path;
+	this->textureLibrary = textureLibrary;
 	this->logger = Logger::getInstance();
 	this->logger->info("ModManager instance created.");
 }
@@ -22,13 +24,13 @@ ModManager::~ModManager() {}
 
 void ModManager::addMod(string id, std::shared_ptr<Mod> mod) { mods[id] = mod; }
 
-void ModManager::loadMods(string path) {
+bool ModManager::loadMods() {
 	if (!config->mods.enabled) {
 		this->logger->info("Mods are disabled.");
-		return;
+		return false;
 	}
 
-	auto steamWorkshopDir = std::filesystem::path(path);
+	auto steamWorkshopDir = std::filesystem::path(this->path);
 
 	std::vector<std::filesystem::path> workshopItems;
 
@@ -42,7 +44,31 @@ void ModManager::loadMods(string path) {
 	}
 
 	this->setupDependencies();
+	this->removeOrphanedMods();
 
+	for (const auto &mod : mods) {
+		this->addTexturePacks(mod.second);
+	}
+
+	return true;
+}
+
+void ModManager::setupDependencies() {
+	for (const auto &mod : mods) {
+		auto modId = mod.first;
+		auto modPtr = mod.second;
+
+		for (const auto &dependency : modPtr->getRawDependencies()) {
+			if (mods.find(dependency) != mods.end()) {
+				auto depMod = mods[dependency];
+				modPtr->addDependency(depMod);
+				depMod->addDependant(modPtr);
+			}
+		}
+	}
+}
+
+void ModManager::removeOrphanedMods() {
 	for (auto it = mods.begin(); it != mods.end();) {
 		auto mod = it->second;
 		if (mod->getType() == ModType::TEXTURE &&
@@ -51,6 +77,35 @@ void ModManager::loadMods(string path) {
 		} else {
 			++it;
 		}
+	}
+}
+
+void ModManager::addTexturePacks(std::shared_ptr<Mod> mod) {
+	auto modType = mod->getType();
+	auto modPath = mod->getPath();
+
+	if (modType == ModType::MAP) {
+		return;
+	}
+
+	auto texturePacksDir =
+		std::filesystem::path(modPath) / "media" / "texturepacks";
+
+	if (!FileSystem::validatePath(texturePacksDir)) {
+		return;
+	}
+
+	for (const auto &texturePackDirEntry :
+		 std::filesystem::directory_iterator(texturePacksDir)) {
+		if (texturePackDirEntry.is_directory()) {
+			continue;
+		}
+
+		if (texturePackDirEntry.path().extension() != ".pack") {
+			continue;
+		}
+
+		this->textureLibrary->addTexturePackPath(texturePackDirEntry.path());
 	}
 }
 
@@ -137,21 +192,6 @@ void ModManager::processMod(string path, std::uint64_t steamId) {
 	}
 
 	this->addMod(id, mod);
-}
-
-void ModManager::setupDependencies() {
-	for (const auto &mod : mods) {
-		auto modId = mod.first;
-		auto modPtr = mod.second;
-
-		for (const auto &dependency : modPtr->getRawDependencies()) {
-			if (mods.find(dependency) != mods.end()) {
-				auto depMod = mods[dependency];
-				modPtr->addDependency(depMod);
-				depMod->addDependant(modPtr);
-			}
-		}
-	}
 }
 
 bool ModManager::isMapMod(string path) {

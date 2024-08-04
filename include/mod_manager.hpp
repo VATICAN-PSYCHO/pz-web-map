@@ -10,35 +10,34 @@
 #include "config.hpp"
 #include "logger.hpp"
 #include "mod.hpp"
-#include "thread_pool.hpp"
-
-using std::string;
+#include "texture_library.hpp"
 
 class ModManager {
   public:
-	ModManager();
+	ModManager(std::string path, TextureLibrary *textureLibrary);
 	~ModManager();
 
-	void loadMods(string path);
-	void addMod(string id, std::shared_ptr<Mod> mod);
+	bool loadMods();
+
+	void addMod(std::string id, std::shared_ptr<Mod> mod);
 	auto getMods() { return mods; }
 
   private:
 	Config *config = Config::getInstance();
-	string path;
-	std::unordered_map<string, std::shared_ptr<Mod>> mods;
-
-	void loadModsParallel(std::filesystem::path path);
-	void loadModsSequential(std::filesystem::path path);
-
-	void processSteamWorkshopItem(string path);
-	void processMod(string path, std::uint64_t steamId);
-	void setupDependencies();
-	bool isMapMod(string path);
-	bool isTextureMod(string path);
-	bool isNonEmptyExistsingDirectory(string path);
-
 	Logger *logger;
+	std::string path;
+	std::unordered_map<std::string, std::shared_ptr<Mod>> mods;
+	TextureLibrary *textureLibrary;
+
+	void setupDependencies();
+	void removeOrphanedMods();
+	void addTexturePacks(std::shared_ptr<Mod> mod);
+
+	void processSteamWorkshopItem(std::string path);
+	void processMod(std::string path, std::uint64_t steamId);
+	bool isMapMod(std::string path);
+	bool isTextureMod(std::string path);
+	bool isNonEmptyExistsingDirectory(std::string path);
 };
 
 #endif
