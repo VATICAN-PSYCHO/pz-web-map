@@ -1,7 +1,7 @@
 #include "mod_manager.hpp"
+#include "config.hpp"
 #include "file_system.hpp"
 #include "logger.hpp"
-#include "settings.hpp"
 #include "thread_pool.hpp"
 
 #include <cstdint>
@@ -23,7 +23,7 @@ ModManager::~ModManager() {}
 void ModManager::addMod(string id, std::shared_ptr<Mod> mod) { mods[id] = mod; }
 
 void ModManager::loadMods(string path) {
-	if (!settings->mods.enabled) {
+	if (!config->mods.enabled) {
 		this->logger->info("Mods are disabled.");
 		return;
 	}

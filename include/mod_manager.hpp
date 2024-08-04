@@ -7,9 +7,9 @@
 #include <string>
 #include <unordered_map>
 
+#include "config.hpp"
 #include "logger.hpp"
 #include "mod.hpp"
-#include "settings.hpp"
 #include "thread_pool.hpp"
 
 using std::string;
@@ -24,7 +24,7 @@ class ModManager {
 	auto getMods() { return mods; }
 
   private:
-	Settings *settings = Settings::getInstance();
+	Config *config = Config::getInstance();
 	string path;
 	std::unordered_map<string, std::shared_ptr<Mod>> mods;
 

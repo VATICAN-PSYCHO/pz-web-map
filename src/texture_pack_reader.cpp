@@ -1,4 +1,4 @@
-#include "texture_pack_parser.hpp"
+#include "texture_pack_reader.hpp"
 #include "binary_shift_reader.hpp"
 #include "logger.hpp"
 #include "texture.hpp"
@@ -17,7 +17,7 @@ static std::string magicWord = "PZPK";
 static std::vector<std::byte> deadBeef = {std::byte(0xEF), std::byte(0xBE),
 										  std::byte(0xAD), std::byte(0xDE)};
 
-TexturePackParser::TexturePackParser(const std::string &path) {
+TexturePackReader::TexturePackReader(const std::string &path) {
 	this->path = path;
 	filesystem::path texturePackFile = filesystem::path(this->path);
 	std::ifstream textureFile(texturePackFile, std::ios::in);
@@ -43,9 +43,9 @@ TexturePackParser::TexturePackParser(const std::string &path) {
 	this->determineVersion();
 }
 
-TexturePackParser::~TexturePackParser() {}
+TexturePackReader::~TexturePackReader() {}
 
-void TexturePackParser::determineVersion() {
+void TexturePackReader::determineVersion() {
 
 	static std::string optionalFileHeader = "PZPK";
 
@@ -60,7 +60,7 @@ void TexturePackParser::determineVersion() {
 	version = TexturePackVersion::V2;
 }
 
-std::shared_ptr<TexturePack> TexturePackParser::parseTexturePack() {
+std::shared_ptr<TexturePack> TexturePackReader::read() {
 
 	std::shared_ptr<TexturePack> texturePack = std::make_shared<TexturePack>();
 
@@ -78,7 +78,7 @@ std::shared_ptr<TexturePack> TexturePackParser::parseTexturePack() {
 	logger->info("Texture pages count: " + std::to_string(texturePagesCount));
 
 	for (std::size_t i = 0; i < texturePagesCount; ++i) {
-		this->parsePage(texturePack);
+		this->readPage(texturePack);
 	}
 
 	if (this->version == TexturePackVersion::V2) {
@@ -88,7 +88,7 @@ std::shared_ptr<TexturePack> TexturePackParser::parseTexturePack() {
 	return texturePack;
 }
 
-void TexturePackParser::parsePage(std::shared_ptr<TexturePack> texturePack) {
+void TexturePackReader::readPage(std::shared_ptr<TexturePack> texturePack) {
 
 	std::shared_ptr<TexturePage> texturePage = std::make_shared<TexturePage>();
 
@@ -116,7 +116,7 @@ void TexturePackParser::parsePage(std::shared_ptr<TexturePack> texturePack) {
 	logger->info("Texture page alpha: " + std::to_string(texturePageAlpha));
 
 	for (std::size_t i = 0; i < texturesCount; ++i) {
-		this->parseTexture(texturePage);
+		this->readTexture(texturePage);
 	}
 
 	uint32_t textureSize = 0;
@@ -146,7 +146,7 @@ void TexturePackParser::parsePage(std::shared_ptr<TexturePack> texturePack) {
 	texturePack->pages.push_back(texturePage);
 }
 
-void TexturePackParser::parseTexture(std::shared_ptr<TexturePage> texturePage) {
+void TexturePackReader::readTexture(std::shared_ptr<TexturePage> texturePage) {
 
 	std::shared_ptr<Texture> texture = std::make_shared<Texture>();
 

@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <regex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -9,12 +10,12 @@
 // #include <CL/cl.h>
 #include <opencv2/opencv.hpp>
 
+#include "config.hpp"
 #include "file_system.hpp"
 #include "logger.hpp"
 #include "mod_manager.hpp"
-#include "settings.hpp"
 #include "texture.hpp"
-#include "texture_pack_parser.hpp"
+#include "texture_pack_reader.hpp"
 #include "texture_page.hpp"
 #include "thread_pool.hpp"
 
@@ -28,16 +29,17 @@ namespace filesystem = std::filesystem;
 int main() {
 
 	auto logger = Logger::getInstance();
-	auto settings = Settings::getInstance();
+	auto config = Config::getInstance();
 
-	settings->loadSettings();
+	config->load();
 
-	string gameDir = settings->gameDir;
-	string steamWorkshopDir = settings->workshopDir;
-	vector<string> includePacks = settings->includePacksDir;
+	auto gameDir = config->directories.gameDir;
+	auto steamWorkshopDir = config->directories.modsDir;
+	auto outputDir = config->directories.outputDir;
+	auto includePacks = config->includePacksNames;
 
 	std::shared_ptr<ThreadPool> threadPool =
-		std::make_shared<ThreadPool>(settings->execution.threads);
+		std::make_shared<ThreadPool>(config->execution.threads);
 
 	ModManager modManager;
 
@@ -70,9 +72,6 @@ int main() {
 		return 1;
 	}
 
-	filesystem::path texturePacksDirectory =
-		filesystem::path(gameDir) / "media" / "texturepacks";
-
 	filesystem::path mapsDirectory =
 		filesystem::path(gameDir) / "media" / "maps";
 
@@ -82,6 +81,9 @@ int main() {
 		logger->error("Maps directory does not exist.");
 		return 1;
 	}
+
+	filesystem::path texturePacksDirectory =
+		filesystem::path(gameDir) / "media" / "texturepacks";
 
 	auto texturePacksDirectoryExists =
 		FileSystem::validatePath(texturePacksDirectory);
@@ -146,20 +148,18 @@ int main() {
 	std::unique_ptr<vector<std::shared_ptr<TexturePack>>> texturePacks =
 		std::make_unique<vector<std::shared_ptr<TexturePack>>>();
 
-	std::vector<std::shared_ptr<TexturePackParser>> texturePackParsers;
+	std::vector<std::shared_ptr<TexturePackReader>> texturePackReaders;
 
 	for (const auto &texturePackPath : *texturePacksPaths) {
-		auto texturePackParser =
-			std::make_shared<TexturePackParser>(texturePackPath.string());
+		auto texturePackReader =
+			std::make_shared<TexturePackReader>(texturePackPath.string());
 
-		texturePackParsers.push_back(texturePackParser);
+		texturePackReaders.push_back(texturePackReader);
 
-		auto texturePack = texturePackParser->parseTexturePack();
+		auto texturePack = texturePackReader->read();
 
 		texturePacks->push_back(texturePack);
 	}
-
-	filesystem::path outputDir = settings->outputDir;
 
 	filesystem::create_directories(outputDir);
 
@@ -184,7 +184,8 @@ int main() {
 			std::shared_ptr<cv::Mat> image = std::make_shared<cv::Mat>(
 				cv::imdecode(*ucharBuffer, cv::IMREAD_UNCHANGED));
 
-			filesystem::path pageDirectory = outputDir / page->getName();
+			filesystem::path pageDirectory =
+				filesystem::path(outputDir) / page->getName();
 			filesystem::create_directories(pageDirectory);
 
 			for (const auto &texture : pageTextures) {
@@ -210,14 +211,55 @@ int main() {
 
 				filesystem::path texturePath = pageDirectory / name;
 
-				try {
-					cv::imwrite(texturePath.string() + ".png", *textureImage);
-				} catch (const cv::Exception &e) {
-					logger->error(e.what());
-				}
+				// try {
+				// 	cv::imwrite(texturePath.string() + ".png", *textureImage);
+				// } catch (const cv::Exception &e) {
+				// 	logger->error(e.what());
+				// }
 
 				textures.insert({name, texture});
 			}
+		}
+	}
+
+	auto mapDirectory =
+		filesystem::path(gameDir) / "media" / "maps" / "Muldraugh, KY";
+
+	auto mapDirectoryExists = FileSystem::validatePath(mapDirectory);
+
+	if (!mapDirectoryExists) {
+		logger->error("Map directory does not exist.");
+		return 1;
+	}
+
+	auto lotHeaderRegex = std::regex("^(\\d+)_(\\d+).lotheader$");
+
+	
+
+	for (const auto &mapDirEntry :
+		 filesystem::directory_iterator(mapDirectory)) {
+
+		if (mapDirEntry.is_directory()) {
+			continue;
+		}
+
+		const auto &filePath = mapDirEntry.path();
+		const auto &fileName = filePath.filename().string();
+
+		std::smatch match;
+		if (std::regex_match(fileName, match, lotHeaderRegex)) {
+			const auto &xCoordStr = match[1].str();
+			const auto &yCoordStr = match[2].str();
+
+			int xCoord = std::stoi(xCoordStr);
+			int yCoord = std::stoi(yCoordStr);
+
+			// Process the lot header file
+			// ...
+
+			logger->info("Lot header file: " + fileName);
+			logger->info("X Coord: " + std::to_string(xCoord) +
+						 ", Y Coord: " + std::to_string(yCoord));
 		}
 	}
 

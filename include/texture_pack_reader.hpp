@@ -11,15 +11,15 @@
 
 enum TexturePackVersion { Unknown, V1, V2 };
 
-class TexturePackParser {
+class TexturePackReader {
   public:
-	TexturePackParser(const std::string &path);
-	~TexturePackParser();
+	TexturePackReader(const std::string &path);
+	~TexturePackReader();
 
-	std::shared_ptr<TexturePack> parseTexturePack();
+	std::shared_ptr<TexturePack> read();
 
-	void parsePage(std::shared_ptr<TexturePack> texturePack);
-	void parseTexture(std::shared_ptr<TexturePage> texturePage);
+	void readPage(std::shared_ptr<TexturePack> texturePack);
+	void readTexture(std::shared_ptr<TexturePage> texturePage);
 
   private:
 	void determineVersion();
